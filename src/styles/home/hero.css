@@ -1,0 +1,158 @@
+/* Hero section */
+/* ============================ HERO ============================ */
+.mp-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 100px 0 80px;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(52, 211, 153, 0.15), transparent 55%),
+        radial-gradient(circle at 80% 80%, rgba(52, 211, 153, 0.08), transparent 55%);
+}
+.mp-hero > .mp-container { position: relative; z-index: 2; }
+
+.mp-hero__grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.mp-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--mp-card);
+    border: 1px solid var(--mp-border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mp-muted);
+    margin-bottom: 20px;
+    box-shadow: var(--mp-shadow-sm);
+}
+.mp-hero__badge .mp-dot {
+    width: 8px;
+    height: 8px;
+    background: #22C55E;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+.mp-hero__title {
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 16px;
+    color: var(--mp-fg);
+}
+
+.mp-hero__subtitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--mp-accent);
+    margin: 0 0 20px;
+}
+
+.mp-hero__description {
+    font-size: 18px;
+    color: var(--mp-muted);
+    margin: 0 0 32px;
+    max-width: 540px;
+}
+
+.mp-hero__ctas {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+}
+
+.mp-hero__social {
+    display: flex;
+    gap: 14px;
+}
+.mp-hero__social a {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mp-card);
+    border: 1px solid var(--mp-border);
+    border-radius: 10px;
+    color: var(--mp-muted);
+    font-size: 16px;
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    text-decoration: none;
+}
+.mp-hero__social a:hover {
+    background: var(--mp-accent);
+    color: #0B0B0F;
+    border-color: var(--mp-accent);
+    transform: translateY(-2px);
+}
+
+.mp-hero__visual {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    max-width: 480px;
+    margin-left: auto;
+}
+
+.mp-hero__imgwrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--mp-alt);
+    box-shadow: var(--mp-shadow-lg);
+}
+.mp-hero__imgwrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, transparent 50%);
+    pointer-events: none;
+}
+.mp-hero__imgwrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mp-hero__chip {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--mp-card);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mp-fg);
+    box-shadow: var(--mp-shadow-md);
+    border: 1px solid var(--mp-border);
+    z-index: 2;
+}
+.mp-hero__chip i { font-size: 16px; }
+.mp-hero__chip .fa-wordpress { color: #21759B; }
+.mp-hero__chip .fa-react { color: #61DAFB; }
+.mp-hero__chip .fa-php { color: #777BB4; }
+.mp-hero__chip .fa-node-js { color: #8CC84B; }
+.mp-hero__chip .fa-wand-magic-sparkles { color: #A855F7; }
+
+.mp-hero__chip--tl { top: 24px; left: -32px; animation: mp-float 4s ease-in-out infinite; }
+.mp-hero__chip--tr { top: 72px; right: -36px; animation: mp-float 4s ease-in-out infinite 1s; }
+.mp-hero__chip--bl { bottom: 110px; left: -48px; animation: mp-float 4s ease-in-out infinite 2s; }
+.mp-hero__chip--br { bottom: 40px; right: -28px; animation: mp-float 4s ease-in-out infinite 3s; }
+
+@keyframes mp-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+}
+

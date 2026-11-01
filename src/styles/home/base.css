@@ -1,0 +1,106 @@
+/* Shared homepage primitives: wrapper, labels, section titles, buttons. */
+body { background: var(--mp-bg); }
+
+.mp-wrapper {
+    color: var(--mp-fg);
+    font-family: var(--mp-font);
+    background: var(--mp-bg);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+.mp-wrapper *,
+.mp-wrapper *::before,
+.mp-wrapper *::after {
+    box-sizing: border-box;
+}
+
+.mp-wrapper img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.mp-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.mp-label {
+    display: inline-block;
+    padding: 6px 14px;
+    background: var(--mp-accent-soft);
+    color: var(--mp-accent);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+
+.mp-section__head {
+    max-width: 640px;
+    margin-bottom: 48px;
+}
+
+.mp-section__title {
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-weight: 800;
+    margin: 0 0 12px;
+    color: var(--mp-fg);
+}
+
+.mp-accent {
+    color: #34D399;
+}
+
+.mp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.mp-btn--primary {
+    background: #34D399;
+    color: #0B0B0F;
+    border-color: #34D399;
+    font-weight: 600;
+}
+.mp-btn--primary:hover {
+    background: #6EE7B7;
+    border-color: #6EE7B7;
+    color: #0B0B0F;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px -10px rgba(52, 211, 153, 0.5);
+}
+
+.mp-btn--ghost {
+    background: transparent;
+    color: var(--mp-fg);
+    border-color: var(--mp-border);
+}
+.mp-btn--ghost:hover {
+    background: var(--mp-card);
+    border-color: var(--mp-border-strong);
+    color: var(--mp-fg);
+}
+
+.mp-btn--block {
+    width: 100%;
+    justify-content: center;
+}
+

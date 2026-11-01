@@ -1,9 +1,12 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Hero from '@/components/home/Hero.astro';
+import '@/styles/home/base.css';
 ---
 
 <BaseLayout>
-  <div class="mp-container">
-    <h1>Naymul Hasan</h1>
+  <div class="mp-wrapper">
+    <div class="mp-progress" id="mpProgress"></div>
+    <Hero />
   </div>
 </BaseLayout>
