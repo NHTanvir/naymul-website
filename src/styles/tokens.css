@@ -1,0 +1,22 @@
+/* Design tokens carried over from the WordPress theme (home-v2.css). */
+:root {
+  --mp-bg: #0B0B0F;
+  --mp-alt: #111116;
+  --mp-card: #18181B;
+  --mp-card-2: #27272A;
+  --mp-fg: #FAFAFA;
+  --mp-muted: #A1A1AA;
+  --mp-subtle: #71717A;
+  --mp-border: rgba(255, 255, 255, 0.08);
+  --mp-border-strong: rgba(255, 255, 255, 0.14);
+  --mp-accent: #34D399;
+  --mp-accent-soft: rgba(52, 211, 153, 0.15);
+  --mp-pink: #F472B6;
+  --mp-yellow: #FACC15;
+  --mp-radius: 14px;
+  --mp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --mp-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --mp-shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --mp-font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
