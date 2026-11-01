@@ -4,5 +4,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "naymul-website",
   "compatibility_date": "2026-10-23",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Keep the free *.workers.dev URL working alongside the custom domain.
+  "workers_dev": true,
+  // Serve the site on the real domain. The naymul.com zone lives in the same Cloudflare account.
+  "routes": [
+    { "pattern": "naymul.com", "custom_domain": true },
+    { "pattern": "www.naymul.com", "custom_domain": true }
+  ]
 }
