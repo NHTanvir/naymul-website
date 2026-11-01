@@ -54,5 +54,5 @@ For the live admin, Keystatic needs a GitHub App. Create it once by running
 then add the values from `.env.example` as secrets on the Worker
 (Settings → Variables and Secrets).
 
-Live now at https://naymul-website.naymulhasantanvir10.workers.dev. Until Workers Builds is
+Live at https://naymul.com (also https://naymul-website.naymulhasantanvir10.workers.dev). Until Workers Builds is
 connected to GitHub, redeploy manually with `npm run build && npx wrangler deploy`.

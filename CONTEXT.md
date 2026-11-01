@@ -15,7 +15,7 @@ free-to-host Astro site that:
 
 Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desktop/naymul-website`.
 
-## Current infrastructure (before the switch)
+## Infrastructure before the switch (historical)
 
 - naymul.com is **WordPress on Hostinger** (`server: hcdn`, PHP 8.3). DNS is at Hostinger
   (`nova/cosmos.dns-parking.com`), **not** Cloudflare.
@@ -53,15 +53,19 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
    values in `.env.example`; add them as Worker secrets (the user should paste the secrets, or run
    `npx wrangler secret bulk .env` themselves). Until then, write posts locally via
    `npm run dev` → http://localhost:4321/keystatic and push.
-3. **Point naymul.com at the new site (optional, user's call).** The domain is on Hostinger DNS.
-   Either move nameservers to Cloudflare and add the domain as a Worker custom domain, or keep
-   Hostinger DNS and CNAME. Not done because it takes the live WordPress site offline — confirm first.
+3. ~~Point naymul.com at the new site~~ **Done 2026-11-01.** See "Deployment".
 4. Nice-to-have: a real contact form backend (e.g. a Worker route + email service), cover images for
    posts, an OG share image at `/og-default.jpg` (referenced by `Seo.astro` but not created yet).
 
 ## Deployment
 
-- Live: **https://naymul-website.naymulhasantanvir10.workers.dev** (Worker `naymul-website`).
+- Live: **https://naymul.com** and **https://www.naymul.com** (Worker custom domains, set in
+  `wrangler.jsonc` `routes`), plus https://naymul-website.naymulhasantanvir10.workers.dev.
+- Domain registrar: **Namecheap**. Nameservers changed to `cartman.ns.cloudflare.com` /
+  `sarah.ns.cloudflare.com`; the zone is active on the free plan.
+- Email stays on **Hostinger**: MX, SPF, DMARC, 3 DKIM CNAMEs, autoconfig/autodiscover are in the
+  Cloudflare zone as *DNS only* (they must not be proxied). The old WordPress A/AAAA/www records
+  were deleted; WordPress on Hostinger is no longer reachable via naymul.com.
 - Cloudflare account: naymulhasantanvir10@gmail.com (ID `e1774228c2abf7b63e62d464b564082f`).
   Wrangler is logged in on this machine via OAuth.
 - KV namespace `naymul-website-session` was auto-created for the `SESSION` binding.
