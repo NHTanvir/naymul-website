@@ -18,14 +18,7 @@ export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
 
-export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-}
+export { slugify } from './slug';
 
 /** Plain-text excerpt: the post's own excerpt, or the first ~22 words of the body. */
 export function excerptOf(post: Post, words = 22): string {
