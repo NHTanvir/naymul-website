@@ -1,0 +1,298 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const uploads = '/wp-content/uploads';
+const features = [
+  {
+    title: 'Pick your stack per site',
+    text: 'PHP 5.6 through 8.5, MariaDB or MySQL, nginx or Apache. Every choice is per site and changeable on a site you already built.',
+  },
+  {
+    title: 'Real HTTPS, real hostnames',
+    text: 'An nginx reverse proxy on 80 and 443 with a locally trusted CA, so every site gets its own name and a padlock your browser accepts.',
+  },
+  {
+    title: 'Built for day-to-day work',
+    text: 'Clone a site, export and import it, save it as a blueprint, log straight into wp-admin, toggle Xdebug, open Adminer, and catch outgoing mail in Mailpit.',
+  },
+];
+const downloads = [
+  {
+    title: 'Windows 64-bit',
+    meta: 'Windows 10 and 11 · x64 · .zip · 5.2 MB',
+    href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x64.zip`,
+  },
+  {
+    title: 'Windows 32-bit',
+    meta: 'Windows 10 and 11 · x86 · .zip · 5.1 MB',
+    href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x86.zip`,
+  },
+  {
+    title: 'Ubuntu / Debian',
+    meta: '16.04 and newer · x86_64 · .deb · 4.9 MB',
+    href: `${uploads}/2026/10/wp-pond_0.1.0_amd64.deb`,
+  },
+];
+---
+
+<BaseLayout
+  title="WP Pond — Local WordPress development"
+  description="Spin up a real WordPress site on your own machine in a couple of clicks. Any PHP from 5.6 to 8.5, any WordPress release, MariaDB or MySQL, nginx or Apache."
+  section="page"
+>
+  <div class="pond">
+    <section class="pond-hero">
+      <div class="pond-inner">
+        <p class="pond-hero__eyebrow">Local WordPress development</p>
+        <h1 class="pond-hero__title">WP Pond</h1>
+        <p class="pond-hero__lede">
+          Spin up a real WordPress site on your own machine in a couple of clicks. Any PHP from 5.6 to 8.5, any WordPress
+          release, MariaDB or MySQL, nginx or Apache — chosen per site, changed whenever you like, downloaded on demand.
+        </p>
+        <div class="pond-buttons">
+          <a class="pond-btn pond-btn--primary" href="#downloads">Download for Windows</a>
+          <a class="pond-btn pond-btn--outline" href="#downloads">Download for Ubuntu / Debian</a>
+        </div>
+        <p class="pond-hero__note">Free and open source · MIT licensed · No account, no sign-up</p>
+      </div>
+    </section>
+
+    <section class="pond-features">
+      <div class="pond-inner">
+        <h2 class="pond-h2">Everything the site needs, bundled</h2>
+        <p class="pond-sub pond-sub--wide">No system packages to install, no services to register, nothing left behind on your machine.</p>
+        <div class="pond-cols">
+          {
+            features.map((f) => (
+              <div class="pond-feature">
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="pond-downloads" id="downloads">
+      <div class="pond-inner">
+        <h2 class="pond-h2">Download WP Pond</h2>
+        <p class="pond-sub">Version 0.1.0 · Pick the build that matches your machine.</p>
+        <div class="pond-cols">
+          {
+            downloads.map((d) => (
+              <div class="pond-download">
+                <h3>{d.title}</h3>
+                <p>{d.meta}</p>
+                <a class="pond-btn pond-btn--solid" href={d.href} download>
+                  Download
+                </a>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="pond-notice">
+      <div class="pond-inner">
+        <h3>Early days — worth knowing before you install</h3>
+        <p>
+          This is version 0.1.0. The Linux build has been run end to end on a real machine; the Windows build has not been
+          exercised yet. Apache is Linux-only for now, and macOS is not supported at all. If something breaks, please open
+          an issue — that is exactly what this stage is for.
+        </p>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Mirrors the block layout of the WordPress page: full-width bands, 800px content, 24px block gap. */
+  .pond {
+    background: #ffffff;
+    padding-bottom: 3.75rem;
+  }
+  .pond > section + section {
+    margin-top: 1.5rem;
+  }
+  .pond-inner {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .pond p,
+  .pond h1,
+  .pond h2,
+  .pond h3 {
+    margin-top: 0;
+  }
+
+  .pond-hero {
+    color: #ffffff;
+    background: linear-gradient(135deg, rgb(8, 31, 54) 0%, rgb(13, 87, 92) 55%, rgb(15, 118, 110) 100%);
+    padding: 5rem 1.5rem;
+    text-align: center;
+  }
+  .pond-hero__eyebrow {
+    color: #5eead4;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 0;
+  }
+  .pond-hero__title {
+    color: #ffffff;
+    margin: 0.5rem 0 1rem;
+    font-size: 3.4rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .pond-hero__lede {
+    color: #d7eef0;
+    margin-bottom: 2.25rem;
+    font-size: 1.25rem;
+    line-height: 1.6;
+  }
+  .pond-hero__note {
+    color: #9fd4d2;
+    margin: 1.5rem 0 0;
+    font-size: 0.9rem;
+  }
+
+  .pond-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5em;
+  }
+  .pond-btn {
+    display: inline-block;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    text-decoration: none;
+    transition: filter 0.2s ease;
+  }
+  .pond-btn:hover {
+    filter: brightness(1.08);
+  }
+  .pond-btn--primary {
+    color: #062c30;
+    background-color: #2dd4bf;
+    font-weight: 700;
+  }
+  .pond-btn--outline {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid #7ddfd6;
+    font-weight: 600;
+  }
+  .pond-btn--solid {
+    display: block;
+    width: 100%;
+    color: #ffffff;
+    background-color: #0f766e;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .pond-features {
+    background: #ffffff;
+    padding: 4.5rem 1.5rem 3.5rem;
+  }
+  .pond-downloads {
+    background: #f7fafb;
+    padding: 4rem 1.5rem;
+  }
+  .pond-h2 {
+    color: #0b2b33;
+    text-align: center;
+    margin-bottom: 0.75rem;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .pond-sub {
+    color: #4b5b60;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    font-size: 1.05rem;
+  }
+  .pond-sub--wide {
+    margin-bottom: 3rem;
+  }
+  .pond-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2em;
+  }
+  .pond-feature,
+  .pond-download {
+    border-radius: 12px;
+  }
+  .pond-feature {
+    border: 1px solid #dcecea;
+    background-color: #f4faf9;
+    padding: 1.75rem 1.5rem;
+  }
+  .pond-feature h3 {
+    color: #0b2b33;
+    margin-bottom: 0.6rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .pond-feature p {
+    color: #4b5b60;
+    font-size: 0.98rem;
+    line-height: 1.65;
+    margin-bottom: 0;
+  }
+  .pond-download {
+    border: 1px solid #d8e6e8;
+    background-color: #ffffff;
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+  .pond-download h3 {
+    color: #0b2b33;
+    margin-bottom: 0.35rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .pond-download p {
+    color: #6b7c82;
+    margin-bottom: 1.25rem;
+    font-size: 0.92rem;
+  }
+
+  .pond-notice {
+    color: #e6f4f4;
+    background-color: #0b2b33;
+    padding: 3rem 1.5rem 3.5rem;
+    text-align: center;
+  }
+  .pond-notice h3 {
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+  }
+  .pond-notice p {
+    color: #bcd9d9;
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 781px) {
+    .pond-cols {
+      grid-template-columns: 1fr;
+    }
+    .pond-hero__title {
+      font-size: 2.6rem;
+    }
+  }
+</style>
