@@ -1,0 +1,21 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import '@/styles/home/base.css';
+import '@/styles/blog.css';
+---
+
+<BaseLayout title="Page not found" noindex section="page">
+  <div class="nt-blog">
+    <header class="nt-blog__hero" style="text-align:center">
+      <div class="nt-blog__container">
+        <span class="nt-blog__eyebrow">Error 404</span>
+        <h1 class="nt-blog__title">This page wandered off</h1>
+        <p class="nt-blog__subtitle" style="margin-inline:auto">The link may be old, or the page has moved. Try the homepage or the blog instead.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+          <a class="mp-btn mp-btn--primary" href="/">Back to home <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+          <a class="mp-btn mp-btn--ghost" href="/blogs/">Read the blog</a>
+        </div>
+      </div>
+    </header>
+  </div>
+</BaseLayout>
