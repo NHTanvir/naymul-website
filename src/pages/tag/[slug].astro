@@ -1,0 +1,25 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostList from '@/components/blog/PostList.astro';
+import { getPosts, slugify, type Post } from '@/lib/posts';
+import '@/styles/home/base.css';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const groups = new Map<string, { name: string; posts: Post[] }>();
+  for (const post of posts) {
+    for (const name of post.data.tags) {
+      const slug = slugify(name);
+      if (!groups.has(slug)) groups.set(slug, { name, posts: [] });
+      groups.get(slug)!.posts.push(post);
+    }
+  }
+  return [...groups].map(([slug, group]) => ({ params: { slug }, props: group }));
+}
+
+const { name, posts } = Astro.props;
+---
+
+<BaseLayout title={`Tag: ${name}`} section="blog">
+  <PostList eyebrow="Tag" title={`#${name}`} subtitle={`${posts.length} ${posts.length === 1 ? 'post' : 'posts'}`} posts={posts} />
+</BaseLayout>
