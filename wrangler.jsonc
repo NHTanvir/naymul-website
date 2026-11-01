@@ -1,0 +1,8 @@
+{
+  // Cloudflare Workers config. The Astro adapter extends this at build time
+  // (entry point, static assets directory) and writes the result to dist/server.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "naymul-website",
+  "compatibility_date": "2026-10-23",
+  "observability": { "enabled": true }
+}

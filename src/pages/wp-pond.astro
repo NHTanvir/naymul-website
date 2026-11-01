@@ -694,6 +694,9 @@ const sites = [
   }
   .pond-dl {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     padding: 36px 28px 26px;
     border-radius: 20px;
     text-align: center;
@@ -750,9 +753,13 @@ const sites = [
     font-weight: 700;
   }
   .pond-dl p {
+    /* Grows to fill the card so every Download button sits on the same line,
+       even when one card's details wrap to two lines. */
+    flex: 1;
     margin: 0 0 24px;
     color: var(--mp-muted);
     font-size: 14px;
+    text-wrap: balance;
   }
   .pond-dl__file {
     display: block;
