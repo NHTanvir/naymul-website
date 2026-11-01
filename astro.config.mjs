@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 import markdoc from '@astrojs/markdoc';
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
 import keystatic from '@keystatic/astro';
 
 export default defineConfig({
@@ -13,5 +14,10 @@ export default defineConfig({
   adapter: cloudflare({
     imageService: 'compile',
   }),
-  integrations: [react(), markdoc(), keystatic()],
+  integrations: [
+    react(),
+    markdoc(),
+    keystatic(),
+    sitemap({ filter: (page) => !page.includes('/keystatic') }),
+  ],
 });
