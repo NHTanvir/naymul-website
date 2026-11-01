@@ -1,0 +1,41 @@
+---
+import { site } from '@/data/site';
+---
+
+<a class="nt-logo" href="/" aria-label={`${site.shortName} — home`}>
+  <span class="nt-logo__mark" aria-hidden="true">&lt;/&gt;</span>
+  <span>{site.shortName}</span>
+</a>
+
+<style>
+  .nt-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--mp-fg);
+    text-decoration: none;
+  }
+  .nt-logo__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(52, 211, 153, 0.06));
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    border-radius: 10px;
+    color: var(--mp-accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.05), 0 8px 20px -8px rgba(52, 211, 153, 0.45);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .nt-logo:hover .nt-logo__mark {
+    transform: rotate(-6deg);
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.08), 0 10px 28px -8px rgba(52, 211, 153, 0.6);
+  }
+</style>
