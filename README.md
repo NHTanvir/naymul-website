@@ -25,8 +25,9 @@ existing links keep working after the switch.
 ## Writing a post
 
 **On the live site:** open `https://<your-site>/keystatic`, sign in with GitHub,
-then go to **Blog posts → Add**. Pressing **Save** commits the post to this repo, and
-Cloudflare rebuilds and publishes it in about a minute. Tick **Draft** to keep it hidden.
+then go to **Blog posts → Add**. Pressing **Save** commits the post to the branch picked
+in the admin's branch menu. Save on `deploy` to publish right away (live in ~2 minutes), or save on
+`master` and release later with `git pull && git push origin master:deploy`. Tick **Draft** to keep it hidden.
 
 **Locally:** `npm run dev`, then open http://localhost:4321/keystatic. Posts are saved
 straight to `src/content/posts/` as `.mdoc` files; commit and push to publish.
@@ -45,8 +46,9 @@ npm run preview   # serve the production build with Wrangler
 
 ## Deployment
 
-GitHub Actions (`.github/workflows/deploy.yml`) deploys every push to `master`:
-`npm run build`, then `npx wrangler deploy`. Pages are prerendered; only the
+GitHub Actions (`.github/workflows/deploy.yml`) deploys every push to the **`deploy`** branch
+(`npm run build`, then `npx wrangler deploy`). Pushing to `master` does **not** deploy.
+To release: `git push origin master:deploy`. Pages are prerendered; only the
 Keystatic admin and its API run as Worker code.
 
 The live admin uses the `nhtanvir-keystatic` GitHub App. Its keys are Worker secrets

@@ -42,13 +42,15 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 
 ## What is NOT done yet (in order)
 
-1. ~~Auto-deploy on push~~ **Done** via GitHub Actions (`.github/workflows/deploy.yml`). Cloudflare's
+1. ~~Auto-deploy on push~~ **Done** via GitHub Actions (`.github/workflows/deploy.yml`), triggered
+   **only by pushes to the `deploy` branch** (user's choice; `master` is for work). Release with
+   `git push origin master:deploy`. Cloudflare's
    own Workers Builds GitHub link never connected, so it isn't used. Repo secret `CLOUDFLARE_API_TOKEN`
    (Edit Cloudflare Workers template); repo variables `CLOUDFLARE_ACCOUNT_ID`, `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`.
 2. ~~Keystatic GitHub App~~ **Done.** App `nhtanvir-keystatic` (https://github.com/apps/nhtanvir-keystatic),
    installed on naymul-website. Its client ID/secret and `KEYSTATIC_SECRET` are Worker secrets
    (`wrangler secret`) and live in the local, git-ignored `.env`. Live admin: https://naymul.com/keystatic
-   (Log in with GitHub). Saving a post commits to `master` → Actions deploys it in ~2 minutes.
+   (Log in with GitHub). Saving a post commits to the branch chosen in the admin; saving on `deploy` publishes it.
 3. ~~Point naymul.com at the new site~~ **Done 2026-11-01.** See "Deployment".
 4. Nice-to-have: a real contact form backend (e.g. a Worker route + email service), cover images for
    posts, an OG share image at `/og-default.jpg` (referenced by `Seo.astro` but not created yet).

@@ -1,10 +1,11 @@
 name: Deploy
 
-# Every push to master (including posts saved in the live Keystatic admin, which
-# commit to this repo) rebuilds the site and deploys it to Cloudflare Workers.
+# Only the `deploy` branch goes live. Work happens on `master`; to release it:
+#   git push origin master:deploy
+# Every push to `deploy` rebuilds the site and deploys it to Cloudflare Workers.
 on:
   push:
-    branches: [master]
+    branches: [deploy]
   workflow_dispatch:
 
 concurrency:
