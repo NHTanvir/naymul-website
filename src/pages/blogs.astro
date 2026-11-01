@@ -1,0 +1,17 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostList from '@/components/blog/PostList.astro';
+import { getPosts } from '@/lib/posts';
+import '@/styles/home/base.css';
+
+const posts = await getPosts();
+---
+
+<BaseLayout title="Blogs" description="Writing about React, Node.js, AI, WordPress, and what I learn while shipping real software." section="blog">
+  <PostList
+    eyebrow="The Blog"
+    title="Blogs"
+    subtitle="Writing about React, Node.js, AI, WordPress, and what I learn while shipping real software."
+    posts={posts}
+  />
+</BaseLayout>

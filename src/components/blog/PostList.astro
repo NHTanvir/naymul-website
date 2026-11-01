@@ -1,0 +1,43 @@
+---
+import PostCard from './PostCard.astro';
+import type { Post } from '@/lib/posts';
+import '@/styles/blog.css';
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  posts: Post[];
+}
+
+const { eyebrow, title, subtitle, posts } = Astro.props;
+---
+
+<div class="nt-blog">
+  <header class="nt-blog__hero">
+    <div class="nt-blog__container">
+      <span class="nt-blog__eyebrow">{eyebrow}</span>
+      <h1 class="nt-blog__title">{title}</h1>
+      {subtitle && <p class="nt-blog__subtitle">{subtitle}</p>}
+    </div>
+  </header>
+
+  <section class="nt-blog__list">
+    <div class="nt-blog__container">
+      {
+        posts.length ? (
+          <div class="nt-post-grid">
+            {posts.map((post) => <PostCard post={post} />)}
+          </div>
+        ) : (
+          <div class="nt-blog__empty">
+            <i class="fa-regular fa-pen-to-square" aria-hidden="true" />
+            <h2>No posts yet</h2>
+            <p>I haven't published anything here just yet — check back soon.</p>
+            <a class="mp-btn mp-btn--primary" href="/">Back to home</a>
+          </div>
+        )
+      }
+    </div>
+  </section>
+</div>

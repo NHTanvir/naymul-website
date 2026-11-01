@@ -3,6 +3,10 @@ import Logo from './Logo.astro';
 import MobileNav from './MobileNav.astro';
 import { nav } from '@/data/site';
 
+interface Props {
+  section?: 'home' | 'blog' | 'page';
+}
+
 const path = Astro.url.pathname;
 const isHome = path === '/';
 const isBlog = Astro.props.section === 'blog' || path.startsWith('/blogs') || path.startsWith('/category') || path.startsWith('/tag');

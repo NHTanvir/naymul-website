@@ -273,8 +273,6 @@
     z-index: 200;
     pointer-events: none;
 }
-@media screen and (max-width: 782px) {
-}
 
 .nt-single__hero {
     position: relative;
