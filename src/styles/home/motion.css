@@ -1,0 +1,133 @@
+/* Scroll reveal, hero dots, blob and typing effect. Only active once body.mp-js is set. */
+/* =====================================================
+   ANIMATIONS & MODERN TOUCHES
+   Progressive enhancement — scroll-reveal classes only
+   activate when body.mp-js is set by home-v2.js, so the
+   page stays fully visible if JS is disabled or fails.
+   ===================================================== */
+
+/* -------- Scroll reveal (opt-in via body.mp-js) -------- */
+body.mp-js .mp-reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.75s cubic-bezier(.16,1,.3,1),
+                transform 0.75s cubic-bezier(.16,1,.3,1);
+    will-change: opacity, transform;
+}
+body.mp-js .mp-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+.mp-reveal--d1 { transition-delay: 0.08s; }
+.mp-reveal--d2 { transition-delay: 0.16s; }
+.mp-reveal--d3 { transition-delay: 0.24s; }
+.mp-reveal--d4 { transition-delay: 0.32s; }
+.mp-reveal--d5 { transition-delay: 0.40s; }
+
+/* -------- Hero dot grid -------- */
+.mp-hero__dots {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 1px 1px, rgba(52, 211, 153, 0.28) 1px, transparent 0);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* -------- Hero morphing blob (behind the portrait) -------- */
+.mp-hero__visual { position: relative; }
+.mp-hero__blob {
+    position: absolute;
+    inset: -12% -12% -12% -12%;
+    background: #34D399;
+    filter: blur(80px);
+    opacity: 0.22;
+    border-radius: 50% 60% 40% 50%;
+    z-index: -1;
+    animation: mp-morph 12s ease-in-out infinite;
+}
+@keyframes mp-morph {
+    0%, 100% {
+        border-radius: 50% 60% 40% 50% / 50% 40% 60% 50%;
+        transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+        border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+        transform: translate(-8px, 10px) rotate(120deg);
+    }
+    66% {
+        border-radius: 60% 40% 30% 70% / 30% 50% 70% 50%;
+        transform: translate(10px, -8px) rotate(240deg);
+    }
+}
+
+/* -------- Typing effect -------- */
+.mp-typed {
+    color: var(--mp-accent);
+    display: inline-block;
+    min-height: 1em;
+}
+.mp-typed::after {
+    content: '|';
+    display: inline-block;
+    margin-left: 2px;
+    font-weight: 400;
+    color: var(--mp-accent);
+    animation: mp-blink 1s ease-in-out infinite;
+}
+@keyframes mp-blink {
+    0%, 49%   { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* -------- Floating chip sway (more pronounced) -------- */
+.mp-hero__chip {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.mp-hero__chip:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 20px 40px -12px rgba(99, 102, 241, 0.4);
+}
+
+/* -------- Primary button — dark elevated, subtle border sheen -------- */
+.mp-btn--primary { position: relative; isolation: isolate; }
+
+/* -------- Scroll progress bar -------- */
+.mp-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background: var(--mp-accent);
+    z-index: 999;
+    transition: width 0.1s linear;
+}
+body.admin-bar .mp-progress { top: 32px; }
+@media screen and (max-width: 782px) {
+    body.admin-bar .mp-progress { top: 46px; }
+}
+
+/* -------- Reduced motion: kill all the fancy stuff -------- */
+@media (prefers-reduced-motion: reduce) {
+    body.mp-js .mp-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+    .mp-accent,
+    .mp-hero__blob,
+    .mp-marquee__track,
+    .mp-hero__chip--tl,
+    .mp-hero__chip--tr,
+    .mp-hero__chip--bl,
+    .mp-hero__chip--br,
+    .mp-typed::after {
+        animation: none !important;
+    }
+    .mp-typed::after { opacity: 1; }
+}
+

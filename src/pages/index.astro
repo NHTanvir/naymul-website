@@ -8,6 +8,7 @@ import Projects from '@/components/home/Projects.astro';
 import Contact from '@/components/home/Contact.astro';
 import '@/styles/home/base.css';
 import '@/styles/home/responsive.css';
+import '@/styles/home/motion.css';
 ---
 
 <BaseLayout>
@@ -21,3 +22,7 @@ import '@/styles/home/responsive.css';
     <Contact />
   </div>
 </BaseLayout>
+
+<script>
+  import '@/scripts/home/index';
+</script>
