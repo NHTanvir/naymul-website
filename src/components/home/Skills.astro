@@ -1,0 +1,40 @@
+---
+import { skillGroups } from '@/data/skills';
+import '@/styles/home/stack.css';
+---
+
+<section class="mp-stack" id="skills">
+  <div class="mp-container">
+    <div class="mp-section__head mp-reveal">
+      <span class="mp-label">Skills</span>
+      <h2 class="mp-section__title">What I work with every day</h2>
+    </div>
+
+    <div class="mp-stack-cats">
+      {
+        skillGroups.map((group, i) => (
+          <div class={`mp-stack-cat mp-reveal mp-reveal--d${i + 1}`}>
+            <div class="mp-stack-cat__head">
+              <div class="mp-stack-cat__icon">
+                <i class={group.icon} aria-hidden="true" />
+              </div>
+              <div class="mp-stack-cat__heading">
+                <h3>{group.label}</h3>
+                <span class="mp-stack-cat__caption">{group.caption}</span>
+              </div>
+              <span class="mp-stack-cat__count">{group.items.length}</span>
+            </div>
+            <ul class="mp-stack-cat__list">
+              {group.items.map(([icon, name]) => (
+                <li class="mp-stack-chip">
+                  <i class={icon} aria-hidden="true" />
+                  <span>{name}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
