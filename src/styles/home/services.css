@@ -1,0 +1,73 @@
+/* Services section */
+/* ============================ SERVICES ============================ */
+.mp-services {
+    padding: 100px 0;
+    background: var(--mp-alt);
+}
+.mp-services__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+.mp-service {
+    background: var(--mp-card);
+    border: 1px solid var(--mp-border);
+    border-radius: 20px;
+    padding: 32px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.mp-service:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--mp-shadow-lg);
+    border-color: transparent;
+}
+.mp-service__icon {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mp-accent-soft);
+    color: var(--mp-accent);
+    font-size: 22px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.mp-service h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--mp-fg);
+}
+.mp-service p {
+    font-size: 15px;
+    color: var(--mp-muted);
+    margin: 0;
+}
+
+/* -------- Service card shine on hover -------- */
+.mp-service {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.mp-service::before {
+    content: '';
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    top: -80px;
+    right: -80px;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.22) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.6s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+.mp-service > * { position: relative; z-index: 1; }
+.mp-service:hover::before {
+    opacity: 1;
+    transform: scale(1.2);
+}
+

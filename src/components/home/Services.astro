@@ -1,0 +1,27 @@
+---
+import { services } from '@/data/services';
+import '@/styles/home/services.css';
+---
+
+<section class="mp-services" id="services">
+  <div class="mp-container">
+    <div class="mp-section__head mp-reveal">
+      <span class="mp-label">Services</span>
+      <h2 class="mp-section__title">What I can do for you</h2>
+    </div>
+
+    <div class="mp-services__grid">
+      {
+        services.map((s, i) => (
+          <div class={`mp-service mp-reveal mp-reveal--d${i + 1}`}>
+            <div class="mp-service__icon">
+              <i class={s.icon} aria-hidden="true" />
+            </div>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
