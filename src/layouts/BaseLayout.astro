@@ -6,6 +6,7 @@ import '@fortawesome/fontawesome-free/css/solid.min.css';
 import '@fortawesome/fontawesome-free/css/regular.min.css';
 import '@/styles/global.css';
 import Seo from '@/components/Seo.astro';
+import Header from "@/components/Header.astro";
 
 interface Props {
   title?: string;
@@ -30,6 +31,7 @@ const props = Astro.props;
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
+    <Header />
     <main id="main">
       <slot />
     </main>

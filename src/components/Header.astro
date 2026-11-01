@@ -1,0 +1,157 @@
+---
+import Logo from './Logo.astro';
+import { nav } from '@/data/site';
+
+const path = Astro.url.pathname;
+const isHome = path === '/';
+const isBlog = path.startsWith('/blog');
+---
+
+<header class="nt-header" data-header>
+  <div class="nt-header__inner">
+    <Logo />
+
+    <nav class="nt-nav" aria-label="Main">
+      <ul>
+        {
+          nav.map((item) => {
+            const active = (isBlog && item.id === 'blog') || (isHome && item.id === 'hero');
+            return (
+              <li class:list={{ 'nt-active': active }} data-nav-id={item.id}>
+                <a href={item.href} aria-current={active ? 'page' : undefined}>
+                  {item.label}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+
+    <a class="nt-cta" href="/#get-in-touch">Get Started</a>
+  </div>
+</header>
+
+<style>
+  .nt-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(11, 11, 15, 0.55);
+    backdrop-filter: saturate(180%) blur(18px);
+    -webkit-backdrop-filter: saturate(180%) blur(18px);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  :global(body.mp-scrolled) .nt-header {
+    background: rgba(11, 11, 15, 0.85);
+    box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  }
+  .nt-header__inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 12px 28px;
+  }
+
+  .nt-nav {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .nt-nav ul {
+    display: flex;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 5px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .nt-nav a {
+    display: inline-block;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--mp-muted);
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .nt-nav a:hover {
+    color: var(--mp-fg);
+  }
+  .nt-nav li.nt-active a {
+    color: #0B0B0F;
+    background: var(--mp-accent);
+    box-shadow: 0 6px 16px -6px rgba(52, 211, 153, 0.55);
+    font-weight: 600;
+  }
+
+  .nt-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    color: var(--mp-fg);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .nt-cta::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--mp-accent);
+    animation: mp-pulse-dot 2s infinite;
+  }
+  .nt-cta::after {
+    content: '\2192';
+    color: var(--mp-accent);
+    transition: transform 0.25s ease;
+  }
+  .nt-cta:hover {
+    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.45);
+    transform: translateY(-1px);
+  }
+  .nt-cta:hover::after {
+    transform: translateX(3px);
+  }
+
+  @keyframes mp-pulse-dot {
+    0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+  }
+
+  @media (max-width: 1023px) {
+    .nt-nav {
+      position: static;
+      transform: none;
+    }
+    .nt-nav a {
+      padding: 8px 12px;
+    }
+  }
+  @media (max-width: 767px) {
+    .nt-nav,
+    .nt-cta {
+      display: none;
+    }
+    .nt-header__inner {
+      padding: 14px 16px;
+    }
+  }
+</style>
