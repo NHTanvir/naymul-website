@@ -1,0 +1,49 @@
+---
+import { Image } from 'astro:assets';
+import aboutImg from '@/assets/me-about.jpg';
+import '@/styles/home/about.css';
+
+const points = [
+  'React & React Native — production-grade UIs',
+  'Node.js APIs, integrations, and AI features',
+  'Long-term partnerships, not just one-off builds',
+];
+---
+
+<section class="mp-about" id="about">
+  <div class="mp-container">
+    <div class="mp-about__grid">
+      <div class="mp-about__visual mp-reveal">
+        <div class="mp-about__imgwrap">
+          <Image src={aboutImg} alt="About Naymul Hasan" widths={[400, 640, 960]} sizes="(max-width: 900px) 90vw, 520px" />
+        </div>
+        <div class="mp-about__stat">
+          <strong><span class="mp-counter" data-count="8">8</span><span class="mp-plus">+</span></strong>
+          <span class="mp-about__stat-label">Years of<br />Experience</span>
+        </div>
+      </div>
+
+      <div class="mp-about__content mp-reveal mp-reveal--d2">
+        <span class="mp-label">About Me</span>
+        <h2 class="mp-section__title">Full-stack engineer building web &amp; mobile that ship.</h2>
+        <p>
+          I'm a full-stack software engineer with 8+ years of experience. I work primarily across React, Node.js, and
+          React Native — building product front-ends, REST/GraphQL APIs, and cross-platform mobile apps that feel fast on
+          both ends.
+        </p>
+        <p>
+          On the AI side, I integrate LLM-powered features — search, automation, content workflows — into real products
+          that customers use every day.
+        </p>
+        <p>
+          Earlier in my career I went deep on the WordPress ecosystem with the Codexpert team — shipping popular plugins
+          like <strong>CoDesigner</strong>, <strong>ThumbPress</strong>, and <strong>Share Logins</strong>. I still take
+          on WordPress work when the project genuinely calls for it.
+        </p>
+        <ul class="mp-about__list">
+          {points.map((p) => <li><i class="fa-solid fa-check" aria-hidden="true" /> {p}</li>)}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
