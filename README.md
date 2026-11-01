@@ -45,7 +45,7 @@ npm run preview   # serve the production build with Wrangler
 
 ## Deployment
 
-Cloudflare Workers Builds is connected to this repo. Every push to `main` runs
+Cloudflare Workers Builds is connected to this repo. Every push to `master` runs
 `npm run build` and `npx wrangler deploy`. Pages are prerendered; only the
 Keystatic admin and its API run as Worker code.
 

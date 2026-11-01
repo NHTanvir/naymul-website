@@ -38,7 +38,7 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 | SEO | Meta/OG tags, sitemap, RSS (`/rss.xml`), robots.txt, favicon, 404. |
 | Contact form | Opens a pre-filled `mailto:` (no server on a static site). |
 | Docs | `README.md` (usage), `CLAUDE.md` (architecture for Claude Code), this file. |
-| Git | ~42 commits on `main`, all pushed. User asked for 30–40 commits; CLAUDE.md and this file were added on request afterwards. |
+| Git | ~45 commits on `master` (default branch; a leftover `main` branch on GitHub can be deleted). User asked for 30–40 commits; CLAUDE.md and this file were added on request afterwards. |
 
 ## What is NOT done yet (in order)
 
@@ -73,6 +73,7 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 - **Fonts/icons self-hosted** (Inter variable, Font Awesome pinned to 6.5.1 to match the theme's icons).
 - **Post URLs stay WordPress-style** (`/hello-world/`) so old links and SEO carry over.
 - **Markdoc** (`.mdoc`) is the post format because Keystatic edits it natively.
+- `astro dev` runs on Node without the Cloudflare adapter (see `astro.config.mjs`) because Keystatic local storage needs the filesystem. Builds use the adapter.
 - Post author is shown as "Naymul Hasan" with the hero photo (WordPress showed the email-like display name and a default avatar).
 
 ## How to resume
