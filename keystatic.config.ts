@@ -8,9 +8,12 @@ const imageDir = {
 export default config({
   // Locally, posts are saved straight to the files in this repo.
   // On the live site, Keystatic commits them to GitHub, which triggers a redeploy.
-  storage: import.meta.env.PROD
-    ? { kind: 'github', repo: 'NHTanvir/naymul-website' }
-    : { kind: 'local' },
+  // Set PUBLIC_KEYSTATIC_STORAGE=github to use GitHub storage in `astro dev`
+  // (needed once to run Keystatic's GitHub App setup wizard).
+  storage:
+    import.meta.env.PROD || import.meta.env.PUBLIC_KEYSTATIC_STORAGE === 'github'
+      ? { kind: 'github', repo: 'NHTanvir/naymul-website' }
+      : { kind: 'local' },
   ui: {
     brand: { name: 'Naymul' },
     navigation: {
