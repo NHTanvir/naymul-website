@@ -1,0 +1,177 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import avatar from '@/assets/me-hero.jpg';
+import { excerptOf, formatDate, getPosts, readingMinutes, slugify, type Post } from '@/lib/posts';
+import { site } from '@/data/site';
+import '@/styles/home/base.css';
+import '@/styles/blog.css';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post, i) => ({
+    params: { slug: post.id },
+    // posts are newest-first, so the next (newer) post is i - 1
+    props: { post, prev: posts[i + 1] ?? null, next: posts[i - 1] ?? null },
+  }));
+}
+
+interface Props {
+  post: Post;
+  prev: Post | null;
+  next: Post | null;
+}
+
+const { post, prev, next } = Astro.props;
+const { title, excerpt, publishedDate, category, tags, cover, coverAlt } = post.data;
+const { Content } = await render(post);
+const minutes = readingMinutes(post);
+const permalink = new URL(`/${post.id}/`, Astro.site).href;
+const shareUrl = encodeURIComponent(permalink);
+const shareTitle = encodeURIComponent(title);
+---
+
+<BaseLayout
+  title={title}
+  description={excerptOf(post, 40)}
+  image={cover?.src}
+  type="article"
+  publishedTime={publishedDate.toISOString()}
+  section="blog"
+>
+  <div class="nt-blog">
+    <div class="nt-reading-progress" id="ntReadingProgress" aria-hidden="true"></div>
+
+    <article class="nt-single">
+      <header class="nt-single__hero">
+        <div class="nt-blog__container nt-blog__container--narrow">
+          {
+            category && (
+              <a class="nt-single__cat" href={`/category/${slugify(category)}/`}>
+                <i class="fa-solid fa-folder" aria-hidden="true" /> {category}
+              </a>
+            )
+          }
+
+          <h1 class="nt-single__title">{title}</h1>
+
+          {excerpt && <p class="nt-single__lede">{excerpt}</p>}
+
+          <div class="nt-single__byline">
+            <a class="nt-author-mini" href="/blogs/">
+              <Image src={avatar} alt="" width={88} height={88} class="nt-author-mini__avatar" />
+              <span class="nt-author-mini__meta">
+                <span class="nt-author-mini__name">{site.name}</span>
+                <span class="nt-author-mini__sub">
+                  <time datetime={publishedDate.toISOString()}>{formatDate(publishedDate)}</time>
+                  <span class="nt-dot-sep">&bull;</span>
+                  {minutes} min read
+                </span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {
+        cover && (
+          <figure class="nt-single__cover">
+            <div class="nt-blog__container">
+              <div class="nt-single__cover-inner">
+                <Image src={cover} alt={coverAlt} widths={[640, 1024, 1400]} sizes="(max-width: 1200px) 100vw, 1150px" loading="eager" />
+              </div>
+            </div>
+          </figure>
+        )
+      }
+
+      <div class="nt-single__body">
+        <div class="nt-blog__container nt-blog__container--narrow">
+          <aside class="nt-toc" id="ntToc" aria-label="Table of contents" hidden>
+            <div class="nt-toc__head">
+              <i class="fa-solid fa-list-ul" aria-hidden="true"></i>
+              <span>On this page</span>
+            </div>
+            <ol class="nt-toc__list" id="ntTocList"></ol>
+          </aside>
+
+          <aside class="nt-share" aria-label="Share this post">
+            <span class="nt-share__label">Share</span>
+            <a class="nt-share__btn" target="_blank" rel="noopener" aria-label="Share on X" href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`}>
+              <i class="fa-brands fa-x-twitter" aria-hidden="true"></i>
+            </a>
+            <a class="nt-share__btn" target="_blank" rel="noopener" aria-label="Share on LinkedIn" href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}>
+              <i class="fa-brands fa-linkedin-in" aria-hidden="true"></i>
+            </a>
+            <a class="nt-share__btn" target="_blank" rel="noopener" aria-label="Share on Facebook" href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}>
+              <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
+            </a>
+            <button type="button" class="nt-share__btn nt-share__copy" data-url={permalink} aria-label="Copy link">
+              <i class="fa-solid fa-link" aria-hidden="true"></i>
+            </button>
+          </aside>
+
+          <div class="nt-single__content">
+            <Content />
+          </div>
+
+          {
+            tags.length > 0 && (
+              <div class="nt-single__tags">
+                <span class="nt-single__tags-label">Tagged:</span>
+                {tags.map((tag) => (
+                  <a href={`/tag/${slugify(tag)}/`}>
+                    <i class="fa-solid fa-hashtag" aria-hidden="true" />
+                    {tag}
+                  </a>
+                ))}
+              </div>
+            )
+          }
+
+          <section class="nt-author-card">
+            <div class="nt-author-card__avatar">
+              <Image src={avatar} alt="" width={192} height={192} />
+            </div>
+            <div class="nt-author-card__body">
+              <span class="nt-author-card__eyebrow">Written by</span>
+              <h3 class="nt-author-card__name">{site.name}</h3>
+              <p class="nt-author-card__bio">Software engineer building products with React, Node.js, mobile, and AI.</p>
+              <a class="nt-author-card__link" href="/blogs/">View all posts <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+          </section>
+
+          {
+            (prev || next) && (
+              <nav class="nt-single__nav" aria-label="Post navigation">
+                {prev && (
+                  <a class="nt-single__nav-link nt-single__nav-link--prev" href={`/${prev.id}/`}>
+                    <span class="nt-single__nav-thumb nt-single__nav-thumb--empty">
+                      <i class="fa-regular fa-image" aria-hidden="true" />
+                    </span>
+                    <span class="nt-single__nav-text">
+                      <span class="nt-single__nav-label"><i class="fa-solid fa-arrow-left" aria-hidden="true" /> Previous</span>
+                      <span class="nt-single__nav-title">{prev.data.title}</span>
+                    </span>
+                  </a>
+                )}
+                {next && (
+                  <a class="nt-single__nav-link nt-single__nav-link--next" href={`/${next.id}/`}>
+                    <span class="nt-single__nav-text">
+                      <span class="nt-single__nav-label">Next <i class="fa-solid fa-arrow-right" aria-hidden="true" /></span>
+                      <span class="nt-single__nav-title">{next.data.title}</span>
+                    </span>
+                    <span class="nt-single__nav-thumb nt-single__nav-thumb--empty">
+                      <i class="fa-regular fa-image" aria-hidden="true" />
+                    </span>
+                  </a>
+                )}
+              </nav>
+            )
+          }
+        </div>
+      </div>
+    </article>
+  </div>
+</BaseLayout>
