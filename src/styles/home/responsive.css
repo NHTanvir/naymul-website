@@ -1,0 +1,42 @@
+/* Breakpoints for the homepage sections */
+/* ============================ RESPONSIVE ============================ */
+@media (max-width: 1024px) {
+    .mp-hero__grid,
+    .mp-about__grid,
+    .mp-contact__grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
+    .mp-hero__visual {
+        margin: 0 auto;
+        max-width: 400px;
+    }
+    .mp-about__visual {
+        margin: 0 auto;
+    }
+    .mp-stack__grid { grid-template-columns: repeat(4, 1fr); }
+    .mp-stack-cats { grid-template-columns: 1fr; gap: 18px; }
+    .mp-services__grid,
+    .mp-projects__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .mp-hero,
+    .mp-about,
+    .mp-stack,
+    .mp-services,
+    .mp-projects,
+    .mp-contact {
+        padding: 64px 0;
+    }
+    .mp-hero__title   { font-size: clamp(30px, 8vw, 40px); }
+    .mp-section__title { font-size: clamp(26px, 7vw, 32px); }
+    .mp-stack__grid    { grid-template-columns: repeat(3, 1fr); }
+    .mp-services__grid,
+    .mp-projects__grid { grid-template-columns: 1fr; }
+    .mp-hero__chip     { display: none; }
+    .mp-about__stat    { right: 16px; bottom: -16px; padding: 14px 18px; min-width: 100px; }
+    .mp-about__stat strong { font-size: 30px; }
+    .mp-contact__form  { padding: 24px; }
+}
+
