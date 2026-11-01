@@ -45,14 +45,12 @@ npm run preview   # serve the production build with Wrangler
 
 ## Deployment
 
-Cloudflare Workers Builds is connected to this repo. Every push to `master` runs
-`npm run build` and `npx wrangler deploy`. Pages are prerendered; only the
+GitHub Actions (`.github/workflows/deploy.yml`) deploys every push to `master`:
+`npm run build`, then `npx wrangler deploy`. Pages are prerendered; only the
 Keystatic admin and its API run as Worker code.
 
-For the live admin, Keystatic needs a GitHub App. Create it once by running
-`npm run dev` with production storage and following the prompt at `/keystatic`,
-then add the values from `.env.example` as secrets on the Worker
-(Settings → Variables and Secrets).
+The live admin uses the `nhtanvir-keystatic` GitHub App. Its keys are Worker secrets
+(`npx wrangler secret`), and the workflow needs the repo secret `CLOUDFLARE_API_TOKEN` plus the
+repo variables `CLOUDFLARE_ACCOUNT_ID` and `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`.
 
-Live at https://naymul.com (also https://naymul-website.naymulhasantanvir10.workers.dev). Until Workers Builds is
-connected to GitHub, redeploy manually with `npm run build && npx wrangler deploy`.
+Live at https://naymul.com (also https://naymul-website.naymulhasantanvir10.workers.dev).

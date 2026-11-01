@@ -42,17 +42,13 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 
 ## What is NOT done yet (in order)
 
-1. **Auto-deploy on push.** The site is LIVE (see "Deployment" below) but deployed manually with
-   `npx wrangler deploy`. Connecting the repo in the dashboard (Workers & Pages → naymul-website →
-   Settings → Builds) failed with "Cloudflare Pages was unable to be installed on your GitHub account"
-   even though the GitHub App (installation 177507453, access to naymul-website only) is installed.
-   Likely fix: uninstall the app on GitHub and reconnect from this Cloudflare account. Until then,
-   redeploy with `npm run build && npx wrangler deploy`.
-2. **Keystatic GitHub App (for the live admin).** Run the dev server with production storage, open
-   `/keystatic`, follow "Create GitHub App", install it on the repo. That writes `.env` with the 4
-   values in `.env.example`; add them as Worker secrets (the user should paste the secrets, or run
-   `npx wrangler secret bulk .env` themselves). Until then, write posts locally via
-   `npm run dev` → http://localhost:4321/keystatic and push.
+1. ~~Auto-deploy on push~~ **Done** via GitHub Actions (`.github/workflows/deploy.yml`). Cloudflare's
+   own Workers Builds GitHub link never connected, so it isn't used. Repo secret `CLOUDFLARE_API_TOKEN`
+   (Edit Cloudflare Workers template); repo variables `CLOUDFLARE_ACCOUNT_ID`, `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`.
+2. ~~Keystatic GitHub App~~ **Done.** App `nhtanvir-keystatic` (https://github.com/apps/nhtanvir-keystatic),
+   installed on naymul-website. Its client ID/secret and `KEYSTATIC_SECRET` are Worker secrets
+   (`wrangler secret`) and live in the local, git-ignored `.env`. Live admin: https://naymul.com/keystatic
+   (Log in with GitHub). Saving a post commits to `master` → Actions deploys it in ~2 minutes.
 3. ~~Point naymul.com at the new site~~ **Done 2026-11-01.** See "Deployment".
 4. Nice-to-have: a real contact form backend (e.g. a Worker route + email service), cover images for
    posts, an OG share image at `/og-default.jpg` (referenced by `Seo.astro` but not created yet).
