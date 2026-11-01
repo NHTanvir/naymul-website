@@ -5,7 +5,7 @@ import { nav } from '@/data/site';
 
 const path = Astro.url.pathname;
 const isHome = path === '/';
-const isBlog = path.startsWith('/blog');
+const isBlog = Astro.props.section === 'blog' || path.startsWith('/blogs') || path.startsWith('/category') || path.startsWith('/tag');
 ---
 
 <header class="nt-header" data-header>

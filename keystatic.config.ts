@@ -25,11 +25,11 @@ export default config({
       format: { contentField: 'content' },
       entryLayout: 'content',
       columns: ['title', 'publishedDate', 'draft'],
-      previewUrl: '/blog/{slug}/',
+      previewUrl: '/{slug}/',
       schema: {
         title: fields.slug({
           name: { label: 'Title', validation: { isRequired: true } },
-          slug: { label: 'URL slug', description: 'The post lives at /blog/<slug>/' },
+          slug: { label: 'URL slug', description: 'The post lives at naymul.com/<slug>/ (same as WordPress)' },
         }),
         excerpt: fields.text({
           label: 'Excerpt',
