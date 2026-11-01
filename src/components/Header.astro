@@ -1,5 +1,6 @@
 ---
 import Logo from './Logo.astro';
+import MobileNav from './MobileNav.astro';
 import { nav } from '@/data/site';
 
 const path = Astro.url.pathname;
@@ -29,6 +30,7 @@ const isBlog = path.startsWith('/blog');
     </nav>
 
     <a class="nt-cta" href="/#get-in-touch">Get Started</a>
+    <MobileNav />
   </div>
 </header>
 
