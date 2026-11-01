@@ -1,0 +1,34 @@
+---
+import { projects } from '@/data/projects';
+import '@/styles/home/projects.css';
+---
+
+<section class="mp-projects" id="projects">
+  <div class="mp-container">
+    <div class="mp-section__head mp-reveal">
+      <span class="mp-label">Selected Work</span>
+      <h2 class="mp-section__title">Projects I've shipped</h2>
+    </div>
+
+    <div class="mp-projects__grid">
+      {
+        projects.map((p, i) => (
+          <article class={`mp-project mp-reveal mp-reveal--d${i + 1}`}>
+            <span class="mp-project__tag">{p.tag}</span>
+            <h3>{p.title}</h3>
+            <p>{p.text}</p>
+            <div class="mp-project__meta">
+              <span>
+                <i class="fa-regular fa-calendar" aria-hidden="true" /> {p.date}
+              </span>
+            </div>
+            <a href={p.url} target="_blank" rel="noopener" class="mp-project__link">
+              View project <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
+              <span class="sr-only">: {p.title}</span>
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

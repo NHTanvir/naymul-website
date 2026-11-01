@@ -1,0 +1,92 @@
+/* Projects section */
+/* ============================ PROJECTS ============================ */
+.mp-projects { padding: 100px 0; }
+
+.mp-projects__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+.mp-project {
+    background: var(--mp-card);
+    border: 1px solid var(--mp-border);
+    border-radius: 20px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.mp-project:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--mp-shadow-lg);
+    border-color: transparent;
+}
+.mp-project__tag {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 4px 10px;
+    background: var(--mp-accent-soft);
+    color: var(--mp-accent);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.mp-project h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: var(--mp-fg);
+}
+.mp-project p {
+    font-size: 15px;
+    color: var(--mp-muted);
+    margin: 0 0 20px;
+    flex: 1;
+}
+.mp-project__meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--mp-subtle);
+    margin-bottom: 18px;
+}
+.mp-project__meta i { margin-right: 6px; }
+.mp-project__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--mp-accent);
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.mp-project__link:hover { color: #6EE7B7; }
+
+/* -------- Project card gradient border on hover -------- */
+.mp-project {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+.mp-project::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: var(--mp-accent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+.mp-project:hover::before { opacity: 1; }
+.mp-project > * { position: relative; z-index: 1; }
+
