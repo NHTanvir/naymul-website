@@ -1,0 +1,56 @@
+---
+import '@fontsource-variable/inter';
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/brands.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
+import '@fortawesome/fontawesome-free/css/regular.min.css';
+import '@/styles/global.css';
+import Seo from '@/components/Seo.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  publishedTime?: string;
+  noindex?: boolean;
+}
+
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0B0B0F" />
+    <meta name="generator" content={Astro.generator} />
+    <Seo {...props} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <main id="main">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  .skip-link {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    z-index: 1000;
+    padding: 10px 16px;
+    background: var(--mp-accent);
+    color: #0B0B0F;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: top 0.2s ease;
+  }
+  .skip-link:focus {
+    top: 16px;
+  }
+</style>
