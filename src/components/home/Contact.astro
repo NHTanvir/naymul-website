@@ -1,0 +1,48 @@
+---
+import { site } from '@/data/site';
+import '@/styles/home/contact.css';
+---
+
+<section class="mp-contact" id="get-in-touch">
+  <div class="mp-container">
+    <div class="mp-contact__grid">
+      <div class="mp-contact__info mp-reveal">
+        <span class="mp-label">Get in Touch</span>
+        <h2 class="mp-section__title">Let's build something that actually ships.</h2>
+        <p>
+          Whether it's a React app, a Node.js API, a mobile build, an AI integration — or a WordPress project that needs
+          serious engineering — I'm happy to take a look.
+        </p>
+        <ul class="mp-contact__list">
+          <li><i class="fa-solid fa-location-dot" aria-hidden="true"></i><span>{site.location}</span></li>
+          <li><i class="fa-solid fa-phone" aria-hidden="true"></i><a href={`tel:${site.phone}`}>{site.phoneDisplay}</a></li>
+          <li><i class="fa-solid fa-envelope" aria-hidden="true"></i><a href={`mailto:${site.email}`}>{site.email}</a></li>
+        </ul>
+      </div>
+
+      <form class="mp-contact__form mp-reveal mp-reveal--d2" id="ntContactForm" action={`mailto:${site.email}`} method="post" enctype="text/plain" data-email={site.email}>
+        <div class="mp-field">
+          <label for="mpName">Your name</label>
+          <input id="mpName" type="text" name="name" placeholder="Jane Doe" autocomplete="name" required />
+        </div>
+        <div class="mp-field">
+          <label for="mpEmail">Email address</label>
+          <input id="mpEmail" type="email" name="email" placeholder="jane@company.com" autocomplete="email" required />
+        </div>
+        <div class="mp-field">
+          <label for="mpSubject">Subject</label>
+          <input id="mpSubject" type="text" name="subject" placeholder="Project inquiry" />
+        </div>
+        <div class="mp-field">
+          <label for="mpMessage">Message</label>
+          <textarea id="mpMessage" name="message" rows="5" placeholder="Tell me a bit about your project..." required></textarea>
+        </div>
+        <button class="mp-btn mp-btn--primary mp-btn--block" type="submit">
+          <span class="mp-btn__label">Send message</span>
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        </button>
+        <div class="mp-contact__notice" id="ntContactNotice" role="status" aria-live="polite" hidden></div>
+      </form>
+    </div>
+  </div>
+</section>
