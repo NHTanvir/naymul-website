@@ -1,3 +1,5 @@
+import { reduceMotion } from './env';
+import { initMagnetic, initParallax, initRipples, initSpotlight, initTilt } from './effects';
 import { initCounters, initReveal, initTyping } from './reveal';
 import { initProgress, initScrollSpy, initSmoothScroll } from './scroll';
 
@@ -8,3 +10,11 @@ initTyping();
 initProgress();
 initSmoothScroll();
 initScrollSpy();
+
+if (!reduceMotion) {
+  initSpotlight();
+  initTilt();
+  initMagnetic();
+  initParallax();
+  initRipples();
+}

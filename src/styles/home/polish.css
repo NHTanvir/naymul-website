@@ -1,0 +1,295 @@
+/* Ambient polish: aurora, shimmer, spotlight, tilt, ripple. All disabled for reduced motion. */
+/* =====================================================
+   EXTRA POLISH ANIMATIONS
+   Subtle, emerald-toned, tasteful — adds life without
+   shouting. All respect prefers-reduced-motion.
+   ===================================================== */
+
+/* -------- Ambient aurora drifting behind the page -------- */
+.mp-wrapper {
+    position: relative;
+}
+.mp-wrapper::before {
+    content: "";
+    position: fixed;
+    inset: -10% -10% -10% -10%;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(52, 211, 153, 0.10) 0%, transparent 35%),
+        radial-gradient(circle at 80% 70%, rgba(52, 211, 153, 0.06) 0%, transparent 40%);
+    filter: blur(40px);
+    z-index: 0;
+    pointer-events: none;
+    animation: mp-aurora 22s ease-in-out infinite alternate;
+}
+.mp-wrapper > * { position: relative; z-index: 1; }
+
+@keyframes mp-aurora {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    50%  { transform: translate3d(-2%, 1.5%, 0) scale(1.05); }
+    100% { transform: translate3d(2%, -2%, 0) scale(1.02); }
+}
+
+/* -------- Hero portrait gentle float -------- */
+.mp-hero__visual {
+    animation: mp-hero-float 7s ease-in-out infinite;
+}
+@keyframes mp-hero-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+}
+
+/* -------- Accent name: moving emerald shimmer -------- */
+.mp-accent {
+    background: linear-gradient(
+        100deg,
+        var(--mp-accent) 0%,
+        #6EE7B7 35%,
+        #FAFAFA 50%,
+        #6EE7B7 65%,
+        var(--mp-accent) 100%
+    );
+    background-size: 250% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: mp-shimmer 5s ease-in-out infinite;
+}
+@keyframes mp-shimmer {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* -------- Hero badge: subtle sweep light -------- */
+.mp-hero__badge {
+    position: relative;
+    overflow: hidden;
+}
+.mp-hero__badge::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(52, 211, 153, 0.18),
+        transparent
+    );
+    animation: mp-badge-sweep 4s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes mp-badge-sweep {
+    0%   { left: -50%; }
+    60%  { left: 110%; }
+    100% { left: 110%; }
+}
+
+/* -------- Section title: animated underline accent -------- */
+.mp-section__head { position: relative; padding-bottom: 18px; }
+.mp-section__head::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--mp-accent), transparent);
+    border-radius: 2px;
+    transition: width 0.9s cubic-bezier(.16,1,.3,1) 0.25s;
+}
+body.mp-js .mp-reveal.mp-section__head::after { width: 0; }
+body.mp-js .mp-reveal.mp-section__head.is-visible::after { width: 80px; }
+.mp-section__head:not(.mp-reveal)::after { width: 80px; }
+
+/* -------- Stack chips: cascade in when card becomes visible -------- */
+body.mp-js .mp-stack-cat .mp-stack-chip {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+body.mp-js .mp-stack-cat.is-visible .mp-stack-chip {
+    opacity: 1;
+    transform: none;
+}
+.mp-stack-cat .mp-stack-chip:nth-child(1) { transition-delay: 0.15s; }
+.mp-stack-cat .mp-stack-chip:nth-child(2) { transition-delay: 0.22s; }
+.mp-stack-cat .mp-stack-chip:nth-child(3) { transition-delay: 0.29s; }
+.mp-stack-cat .mp-stack-chip:nth-child(4) { transition-delay: 0.36s; }
+.mp-stack-cat .mp-stack-chip:nth-child(5) { transition-delay: 0.43s; }
+.mp-stack-cat .mp-stack-chip:nth-child(6) { transition-delay: 0.50s; }
+
+/* -------- Service icon: micro-pop when revealed -------- */
+body.mp-js .mp-service.is-visible .mp-service__icon {
+    animation: mp-icon-pop 0.7s cubic-bezier(.34,1.56,.64,1) 0.2s both;
+}
+@keyframes mp-icon-pop {
+    0%   { transform: scale(0.6) rotate(-12deg); opacity: 0; }
+    60%  { transform: scale(1.12) rotate(4deg);  opacity: 1; }
+    100% { transform: scale(1)    rotate(0);     opacity: 1; }
+}
+.mp-service__icon {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.mp-service:hover .mp-service__icon {
+    transform: rotate(-6deg) scale(1.08);
+    box-shadow: 0 12px 28px -10px rgba(52, 211, 153, 0.5);
+}
+
+/* -------- About stat: ambient pulse glow -------- */
+.mp-about__stat {
+    animation: mp-stat-glow 4s ease-in-out infinite;
+}
+@keyframes mp-stat-glow {
+    0%, 100% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
+                    0 0 0 0 rgba(52, 211, 153, 0);
+    }
+    50% {
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6),
+                    0 0 28px 4px rgba(52, 211, 153, 0.18);
+    }
+}
+
+/* -------- Primary CTA: glow trail follows hover -------- */
+.mp-btn--primary {
+    overflow: hidden;
+}
+.mp-btn--primary::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 70%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.35),
+        transparent
+    );
+    transition: left 0.7s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+.mp-btn--primary:hover::before { left: 130%; }
+.mp-btn--primary > * { position: relative; z-index: 2; }
+
+/* -------- Project card: gentle lift + tilt on hover -------- */
+.mp-project {
+    transition: transform 0.4s cubic-bezier(.16,1,.3,1),
+                box-shadow 0.4s ease,
+                border-color 0.4s ease;
+}
+.mp-project:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+}
+
+/* -------- Hero social icons: stagger entrance -------- */
+body.mp-js .mp-hero__social.is-visible a {
+    animation: mp-social-in 0.5s cubic-bezier(.16,1,.3,1) both;
+}
+.mp-hero__social a:nth-child(1) { animation-delay: 0.05s; }
+.mp-hero__social a:nth-child(2) { animation-delay: 0.12s; }
+.mp-hero__social a:nth-child(3) { animation-delay: 0.19s; }
+.mp-hero__social a:nth-child(4) { animation-delay: 0.26s; }
+@keyframes mp-social-in {
+    0%   { opacity: 0; transform: translateY(8px) scale(0.9); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* -------- Cursor-following spotlight in hero -------- */
+.mp-hero { isolation: isolate; }
+.mp-spotlight {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(
+        420px circle at var(--mp-x, 50%) var(--mp-y, 50%),
+        rgba(52, 211, 153, 0.18),
+        transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    mix-blend-mode: screen;
+}
+
+/* -------- 3D tilt smoothing -------- */
+.mp-service,
+.mp-project,
+.mp-stack-cat,
+.mp-hero__imgwrap,
+.mp-about__imgwrap {
+    transition: transform 0.4s cubic-bezier(.16,1,.3,1),
+                box-shadow 0.4s ease,
+                border-color 0.4s ease;
+}
+
+/* Hero portrait responds to scroll + mouse — float handled by parent */
+.mp-hero__imgwrap {
+    transform: translateY(var(--mp-py, 0));
+}
+
+/* -------- Magnetic primary buttons (smooth out the snap-back) -------- */
+.mp-btn--primary,
+.nt-get-started-btn {
+    transition: transform 0.25s cubic-bezier(.16,1,.3,1),
+                background 0.2s ease,
+                border-color 0.2s ease,
+                box-shadow 0.2s ease,
+                color 0.2s ease;
+}
+
+/* -------- Click ripple -------- */
+.mp-stack-chip,
+.mp-hero__chip,
+.mp-hero__social a {
+    position: relative;
+    overflow: hidden;
+}
+.mp-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(52, 211, 153, 0.45);
+    transform: scale(0);
+    animation: mp-ripple-out 0.7s ease-out;
+    pointer-events: none;
+}
+@keyframes mp-ripple-out {
+    to { transform: scale(1); opacity: 0; }
+}
+
+/* -------- Hero blob: slightly stronger color travel -------- */
+.mp-hero__blob {
+    will-change: transform;
+}
+
+/* -------- Reduced motion: kill the new animations -------- */
+@media (prefers-reduced-motion: reduce) {
+    .mp-wrapper::before,
+    .mp-hero__imgwrap,
+    .mp-accent,
+    .mp-hero__badge::before,
+    .mp-about__stat,
+    .mp-service.is-visible .mp-service__icon,
+    .mp-hero__social.is-visible a,
+    .mp-spotlight,
+    .mp-ripple {
+        animation: none !important;
+    }
+    .mp-accent {
+        background: var(--mp-accent);
+        -webkit-text-fill-color: var(--mp-accent);
+        color: var(--mp-accent);
+    }
+    body.mp-js .mp-stack-cat .mp-stack-chip {
+        opacity: 1;
+        transform: none;
+    }
+    .mp-section__head::after { transition: none; width: 80px; }
+}
