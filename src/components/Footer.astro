@@ -1,0 +1,97 @@
+---
+import Logo from './Logo.astro';
+import { nav, site, socials } from '@/data/site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="nt-footer">
+  <div class="mp-container nt-footer__top">
+    <Logo />
+    <nav aria-label="Footer">
+      <ul class="nt-footer__nav">
+        {nav.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+      </ul>
+    </nav>
+    <ul class="nt-footer__social">
+      {
+        socials.map((s) => (
+          <li>
+            <a href={s.href} aria-label={s.label} target={s.href.startsWith('http') ? '_blank' : undefined} rel="noopener">
+              <i class={s.icon} aria-hidden="true" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  <div class="mp-container nt-footer__bottom">
+    <p>© {year} {site.shortName}. All rights reserved.</p>
+  </div>
+</footer>
+
+<style>
+  .nt-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--mp-muted);
+    padding: 56px 0 32px;
+    text-align: center;
+  }
+  .nt-footer__top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .nt-footer__nav,
+  .nt-footer__social {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .nt-footer__nav {
+    gap: 6px 22px;
+  }
+  .nt-footer__nav a {
+    color: var(--mp-muted);
+    font-size: 15px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .nt-footer__nav a:hover {
+    color: var(--mp-accent);
+  }
+  .nt-footer__social {
+    gap: 12px;
+  }
+  .nt-footer__social a {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mp-card);
+    color: var(--mp-muted);
+    border-radius: 10px;
+    font-size: 15px;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+  .nt-footer__social a:hover {
+    background: var(--mp-accent);
+    color: #0B0B0F;
+    transform: translateY(-2px);
+  }
+  .nt-footer__bottom {
+    margin-top: 28px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .nt-footer__bottom p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--mp-subtle);
+  }
+</style>
