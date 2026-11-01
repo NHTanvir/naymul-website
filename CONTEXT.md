@@ -1,7 +1,7 @@
 # CONTEXT.md — project status and handoff
 
 Read this first. It records what was built, why, what is left, and how to pick up.
-Last updated: 2026-11-01.
+Last updated: 2026-11-01 (site deployed).
 
 ## Goal
 
@@ -42,11 +42,12 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 
 ## What is NOT done yet (in order)
 
-1. **Deploy to Cloudflare.** Blocked on the user signing in to the Cloudflare dashboard
-   (Claude can't enter passwords). Then: Workers & Pages → Create → Import a repository →
-   `NHTanvir/naymul-website`. Build command `npm run build`, deploy command `npx wrangler deploy`.
-   This gives a free `naymul-website.<account>.workers.dev` URL. `npx wrangler deploy --dry-run`
-   already passes locally. The Worker uses a `SESSION` KV binding that Wrangler provisions automatically.
+1. **Auto-deploy on push.** The site is LIVE (see "Deployment" below) but deployed manually with
+   `npx wrangler deploy`. Connecting the repo in the dashboard (Workers & Pages → naymul-website →
+   Settings → Builds) failed with "Cloudflare Pages was unable to be installed on your GitHub account"
+   even though the GitHub App (installation 177507453, access to naymul-website only) is installed.
+   Likely fix: uninstall the app on GitHub and reconnect from this Cloudflare account. Until then,
+   redeploy with `npm run build && npx wrangler deploy`.
 2. **Keystatic GitHub App (for the live admin).** Run the dev server with production storage, open
    `/keystatic`, follow "Create GitHub App", install it on the repo. That writes `.env` with the 4
    values in `.env.example`; add them as Worker secrets (the user should paste the secrets, or run
@@ -57,6 +58,14 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
    Hostinger DNS and CNAME. Not done because it takes the live WordPress site offline — confirm first.
 4. Nice-to-have: a real contact form backend (e.g. a Worker route + email service), cover images for
    posts, an OG share image at `/og-default.jpg` (referenced by `Seo.astro` but not created yet).
+
+## Deployment
+
+- Live: **https://naymul-website.naymulhasantanvir10.workers.dev** (Worker `naymul-website`).
+- Cloudflare account: naymulhasantanvir10@gmail.com (ID `e1774228c2abf7b63e62d464b564082f`).
+  Wrangler is logged in on this machine via OAuth.
+- KV namespace `naymul-website-session` was auto-created for the `SESSION` binding.
+- Verified after deploy: all pages 200, unknown URLs 404, WP Pond downloads SHA-256 identical to naymul.com.
 
 ## Decisions worth knowing
 
