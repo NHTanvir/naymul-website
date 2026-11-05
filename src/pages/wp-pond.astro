@@ -29,17 +29,19 @@ const downloads = [
     os: 'windows',
     icon: 'fa-brands fa-windows',
     title: 'Windows 64-bit',
-    meta: 'Windows 10 and 11 · x64 · .zip · 5.2 MB',
-    file: 'wp-pond-0.1.0-windows-x64.zip',
-    href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x64.zip`,
+    meta: 'Windows 10 and 11 · x64 · Installer · 3.8 MB',
+    file: 'wp-pond-0.1.0-setup-x64.exe',
+    href: '/downloads/wp-pond-0.1.0-setup-x64.exe',
+    alt: { label: 'portable .zip · 5.2 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x64.zip` },
   },
   {
     os: 'windows32',
     icon: 'fa-brands fa-windows',
     title: 'Windows 32-bit',
-    meta: 'Windows 10 and 11 · x86 · .zip · 5.1 MB',
-    file: 'wp-pond-0.1.0-windows-x86.zip',
-    href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x86.zip`,
+    meta: 'Windows 10 and 11 · x86 · Installer · 3.8 MB',
+    file: 'wp-pond-0.1.0-setup-x86.exe',
+    href: '/downloads/wp-pond-0.1.0-setup-x86.exe',
+    alt: { label: 'portable .zip · 5.1 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x86.zip` },
   },
   {
     os: 'linux',
@@ -184,6 +186,15 @@ const sites = [
                   <i class="fa-solid fa-download" aria-hidden="true" /> Download
                 </a>
                 <code class="pond-dl__file">{d.file}</code>
+                {
+                  d.alt ? (
+                    <a class="pond-dl__alt" href={d.alt.href} download>
+                      or get the {d.alt.label}
+                    </a>
+                  ) : (
+                    <span class="pond-dl__alt" aria-hidden="true">&nbsp;</span>
+                  )
+                }
               </article>
             ))
           }
@@ -767,6 +778,23 @@ const sites = [
     font-size: 12px;
     color: var(--mp-subtle);
     overflow-wrap: anywhere;
+  }
+
+  .pond-dl__alt {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--mp-muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--mp-border-strong);
+  }
+  a.pond-dl__alt:hover {
+    color: var(--teal-2);
+    text-decoration-color: currentColor;
+  }
+  span.pond-dl__alt {
+    /* Keeps the Linux card's Download button level with the Windows ones. */
+    visibility: hidden;
   }
 
   /* ---------- Notice ---------- */

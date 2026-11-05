@@ -46,6 +46,8 @@ Restart the dev server after editing `astro.config.mjs`, `markdoc.config.mjs` or
   archives at `/category/<slug>/` and `/tag/<slug>/`. Don't move them; old links depend on them.
 - **`public/wp-content/uploads/`** holds the WP Pond release files at their original WordPress paths.
   Keep the paths when adding new versions, and update the links/sizes in `src/pages/wp-pond.astro`.
+- **`public/downloads/`** holds the Windows setup `.exe` files, generated from the zips by `installer/build.sh`
+  (NSIS script `installer/wp-pond.nsi`). Rebuild them whenever the zips change.
   Cloudflare limits each static file to 25 MiB.
 
 ## Keystatic storage

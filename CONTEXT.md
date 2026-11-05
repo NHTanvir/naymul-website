@@ -35,6 +35,7 @@ Repo: https://github.com/NHTanvir/naymul-website (public). Local folder: `~/Desk
 | Keystatic admin | `/keystatic`. Fields: title/slug, excerpt, date, category, tags, cover image + alt, draft, Markdoc content with images. Local storage in dev, GitHub storage in production. |
 | WP Pond `/wp-pond/` | **Redesigned** (user asked for a modern, eye-catching version — it is intentionally *not* a copy of the WP page). Same copy. OS detection highlights the matching download. 3 cards equal height. |
 | WP Pond files | Copied to `public/wp-content/uploads/2026/09/*.zip` and `2026/10/*.deb` — same paths as WordPress, SHA-256 verified identical to the live files. |
+| WP Pond Windows installers | `public/downloads/wp-pond-0.1.0-setup-{x64,x86}.exe`, built with NSIS from those zips by `installer/build.sh` (script: `installer/wp-pond.nsi`). Per-user install to `%LOCALAPPDATA%\Programs\WP Pond`, adds it to the user PATH, Start menu shortcut, uninstaller in Apps & features. Unsigned, so SmartScreen warns. The zips stay on the page as the "portable .zip" link. Rebuild after a new release: `sudo apt install nsis && installer/build.sh` (bump `VERSION` in the script and the page). |
 | SEO | Meta/OG tags, sitemap, RSS (`/rss.xml`), robots.txt, favicon, 404. |
 | Contact form | Opens a pre-filled `mailto:` (no server on a static site). |
 | Docs | `README.md` (usage), `CLAUDE.md` (architecture for Claude Code), this file. |
