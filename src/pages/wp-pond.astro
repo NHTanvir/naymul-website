@@ -29,25 +29,25 @@ const downloads = [
     os: 'windows',
     icon: 'fa-brands fa-windows',
     title: 'Windows 64-bit',
-    meta: 'Windows 10 and 11 · x64 · Installer · 3.8 MB',
+    meta: 'Windows 10 and 11 · x64 · Installer · 4.9 MB',
     file: 'wp-pond-0.1.0-setup-x64.exe',
     href: '/downloads/wp-pond-0.1.0-setup-x64.exe',
-    alt: { label: 'portable .zip · 5.2 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x64.zip` },
+    alt: { label: 'portable .zip · 6.7 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x64.zip` },
   },
   {
     os: 'windows32',
     icon: 'fa-brands fa-windows',
     title: 'Windows 32-bit',
-    meta: 'Windows 10 and 11 · x86 · Installer · 3.8 MB',
+    meta: 'Windows 10 and 11 · x86 · Installer · 4.3 MB',
     file: 'wp-pond-0.1.0-setup-x86.exe',
     href: '/downloads/wp-pond-0.1.0-setup-x86.exe',
-    alt: { label: 'portable .zip · 5.1 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x86.zip` },
+    alt: { label: 'portable .zip · 5.8 MB', href: `${uploads}/2026/09/wp-pond-0.1.0-windows-x86.zip` },
   },
   {
     os: 'linux',
     icon: 'fa-brands fa-ubuntu',
     title: 'Ubuntu / Debian',
-    meta: '16.04 and newer · x86_64 · .deb · 4.9 MB',
+    meta: '22.04 and newer · x86_64 · .deb · 9.1 MB',
     file: 'wp-pond_0.1.0_amd64.deb',
     href: `${uploads}/2026/10/wp-pond_0.1.0_amd64.deb`,
   },
@@ -210,9 +210,11 @@ const sites = [
           <div>
             <h3>Early days — worth knowing before you install</h3>
             <p>
-              This is version 0.1.0. The Linux build has been run end to end on a real machine; the Windows build has not
-              been exercised yet. Apache is Linux-only for now, and macOS is not supported at all. If something breaks,
-              please open an issue — that is exactly what this stage is for.
+              This is version 0.1.0. Every download here is the desktop app, built and launch-tested on Windows
+              (64- and 32-bit) and on Ubuntu before release. The installers are unsigned, so Windows SmartScreen warns
+              the first time you run one. Ubuntu 22.04 is the floor, because the app's web view needs a library no
+              earlier release ships. Apache is Linux-only for now, and macOS is not supported at all. If something
+              breaks, please open an issue — that is exactly what this stage is for.
             </p>
           </div>
         </div>
