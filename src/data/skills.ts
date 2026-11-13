@@ -56,4 +56,30 @@ export const skillGroups: SkillGroup[] = [
       ['fa-brands fa-npm', 'npm'],
     ],
   },
+  {
+    icon: 'fa-solid fa-shield-halved',
+    label: 'Security & Tooling',
+    caption: 'Intercepting proxies and browser extensions',
+    items: [
+      ['fa-solid fa-tower-broadcast', 'MITM proxies'],
+      ['fa-solid fa-lock', 'TLS & CA'],
+      ['fa-brands fa-chrome', 'Chrome MV3'],
+      ['fa-solid fa-bug', 'Fuzzing'],
+      ['fa-solid fa-user-lock', 'JWT & OAuth'],
+      ['fa-solid fa-terminal', 'CLI tooling'],
+    ],
+  },
+  {
+    icon: 'fa-brands fa-cloudflare',
+    label: 'Cloud & Delivery',
+    caption: 'Ship it where it has to run',
+    items: [
+      ['fa-brands fa-cloudflare', 'Cloudflare Workers'],
+      ['fa-solid fa-dharmachakra', 'Kubernetes'],
+      ['fa-brands fa-github', 'GitHub Actions'],
+      ['fa-solid fa-server', 'nginx'],
+      ['fa-brands fa-linux', 'Linux'],
+      ['fa-solid fa-download', 'Installers'],
+    ],
+  },
 ];
