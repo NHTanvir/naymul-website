@@ -22,10 +22,10 @@ export const projects: Project[] = [
     url: 'https://nextcommerce.naymul.workers.dev',
   },
   {
-    tag: 'Media Optimization',
-    title: 'ThumbPress',
-    text: 'A thumbnail and media optimization plugin running on thousands of sites, keeping asset libraries clean, fast, and disk-efficient.',
-    date: 'Dec 2023',
-    url: 'https://thumbpress.co',
+    tag: 'Security Tooling',
+    title: 'Lancer',
+    text: 'A Rust workspace building a web-application security testing suite — an intercepting TLS proxy with its own CA, repeater and intruder tooling, passive and active scanning, and Rhai scripting over SQLite project files. In early development.',
+    date: 'Jun 2026',
+    url: 'https://github.com/NHTanvir/lancer',
   },
 ];
