@@ -22,14 +22,14 @@ export const skillGroups: SkillGroup[] = [
   {
     icon: 'fa-solid fa-server',
     label: 'Backend & APIs',
-    caption: 'Node.js services and data layers',
+    caption: 'Rust binaries, Node.js services and data layers',
     items: [
+      ['fa-brands fa-rust', 'Rust'],
       ['fa-brands fa-node-js', 'Node.js'],
       ['fa-solid fa-bolt', 'Express'],
       ['fa-solid fa-database', 'MongoDB'],
       ['fa-solid fa-database', 'MySQL'],
       ['fa-brands fa-php', 'PHP'],
-      ['fa-brands fa-wordpress', 'WordPress'],
     ],
   },
   {
