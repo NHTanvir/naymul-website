@@ -7,6 +7,19 @@ export interface SkillGroup {
 
 export const skillGroups: SkillGroup[] = [
   {
+    icon: 'fa-brands fa-rust',
+    label: 'Rust & Systems',
+    caption: 'Native binaries that run anywhere',
+    items: [
+      ['fa-brands fa-rust', 'Rust'],
+      ['fa-solid fa-desktop', 'Tauri'],
+      ['fa-solid fa-bolt', 'Tokio'],
+      ['fa-solid fa-lock', 'rustls'],
+      ['fa-solid fa-database', 'SQLite'],
+      ['fa-solid fa-box', 'Cargo'],
+    ],
+  },
+  {
     icon: 'fa-brands fa-react',
     label: 'Frontend & Mobile',
     caption: 'React, React Native, and modern UIs',
@@ -22,9 +35,8 @@ export const skillGroups: SkillGroup[] = [
   {
     icon: 'fa-solid fa-server',
     label: 'Backend & APIs',
-    caption: 'Rust binaries, Node.js services and data layers',
+    caption: 'Node.js services and data layers',
     items: [
-      ['fa-brands fa-rust', 'Rust'],
       ['fa-brands fa-node-js', 'Node.js'],
       ['fa-solid fa-bolt', 'Express'],
       ['fa-solid fa-database', 'MongoDB'],
