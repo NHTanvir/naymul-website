@@ -140,7 +140,8 @@
     z-index: 2;
 }
 .mp-hero__chip i { font-size: 16px; }
-.mp-hero__chip .fa-wordpress { color: #21759B; }
+.mp-hero__chip .fa-rust { color: #DEA584; }
+.mp-hero__chip .fa-terminal { color: #FFC832; }
 .mp-hero__chip .fa-react { color: #61DAFB; }
 .mp-hero__chip .fa-php { color: #777BB4; }
 .mp-hero__chip .fa-node-js { color: #8CC84B; }
@@ -148,6 +149,7 @@
 
 .mp-hero__chip--tl { top: 24px; left: -32px; animation: mp-float 4s ease-in-out infinite; }
 .mp-hero__chip--tr { top: 72px; right: -36px; animation: mp-float 4s ease-in-out infinite 1s; }
+.mp-hero__chip--ml { top: 46%; left: -56px; animation: mp-float 4s ease-in-out infinite 1.5s; }
 .mp-hero__chip--bl { bottom: 110px; left: -48px; animation: mp-float 4s ease-in-out infinite 2s; }
 .mp-hero__chip--br { bottom: 40px; right: -28px; animation: mp-float 4s ease-in-out infinite 3s; }
 
