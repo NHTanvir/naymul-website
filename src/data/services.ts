@@ -10,9 +10,9 @@ export const services = [
     text: 'Cross-platform mobile apps built with React Native — one codebase, native feel on iOS and Android.',
   },
   {
-    icon: 'fa-brands fa-wordpress',
-    title: 'WordPress Plugins & Themes',
-    text: 'Tailor-made themes and feature-rich plugins that extend WordPress without bloating it.',
+    icon: 'fa-brands fa-rust',
+    title: 'Rust Desktop & CLI Tools',
+    text: 'Native apps and command-line tools in Rust — single binaries that start fast, carry their own dependencies, and install cleanly on Windows and Linux.',
   },
   {
     icon: 'fa-solid fa-code',
