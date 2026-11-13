@@ -19,7 +19,7 @@ export const projects: Project[] = [
     title: 'NextCommerce',
     text: 'A production-shaped e-commerce platform — NestJS 10 and MySQL behind a Next.js 14 storefront, with RabbitMQ events, Redis caching, Docker and Kubernetes manifests. The live demo runs on Cloudflare Workers.',
     date: 'May 2026',
-    url: 'https://nextcommerce.naymulhasantanvir10.workers.dev',
+    url: 'https://nextcommerce.naymul.workers.dev',
   },
   {
     tag: 'WordPress Plugin',
