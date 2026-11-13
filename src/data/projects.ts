@@ -10,7 +10,7 @@ export const projects: Project[] = [
   {
     tag: 'Desktop App',
     title: 'WP Pond',
-    text: 'A native local WordPress development app for Windows and Ubuntu — no Docker, no VM. Any PHP from 5.6 to 8.5, any WordPress release, MariaDB or MySQL, nginx or Apache, chosen per site.',
+    text: 'A native desktop app written in Rust for Windows and Ubuntu — no Docker, no VM. It supervises bundled PHP 5.6 to 8.5, MariaDB or MySQL, and nginx or Apache directly on the host, chosen per site.',
     date: 'Nov 2026',
     url: '/wp-pond/',
   },
@@ -22,9 +22,9 @@ export const projects: Project[] = [
     url: 'https://nextcommerce.naymul.workers.dev',
   },
   {
-    tag: 'WordPress Plugin',
+    tag: 'Media Optimization',
     title: 'ThumbPress',
-    text: 'A thumbnail and media optimization plugin used by thousands of WordPress sites to keep asset libraries clean, fast, and disk-efficient.',
+    text: 'A thumbnail and media optimization plugin running on thousands of sites, keeping asset libraries clean, fast, and disk-efficient.',
     date: 'Dec 2023',
     url: 'https://thumbpress.co',
   },
