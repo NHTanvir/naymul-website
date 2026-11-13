@@ -1,9 +1,9 @@
 export const site = {
   name: 'Naymul Hasan',
   shortName: 'Naymul',
-  title: 'Naymul Hasan — Full-Stack Software Engineer',
+  title: 'Naymul Hasan — Rust & Full-Stack Software Engineer',
   description:
-    'Full-stack software engineer building React front-ends, Node.js APIs, cross-platform mobile apps, and AI-powered features. 8+ years shipping products.',
+    'Rust engineer building native desktop apps and command-line tools that ship as single binaries — plus React front-ends, Node.js APIs and AI-powered features. 8+ years shipping products.',
   url: 'https://naymul.com',
   email: 'naymulhasantanvir10@gmail.com',
   phone: '+880198735554',
