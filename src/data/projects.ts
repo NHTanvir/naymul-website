@@ -15,17 +15,17 @@ export const projects: Project[] = [
     url: '/wp-pond/',
   },
   {
+    tag: 'Full-Stack App',
+    title: 'NextCommerce',
+    text: 'A production-shaped e-commerce platform — NestJS 10 and MySQL behind a Next.js 14 storefront, with RabbitMQ events, Redis caching, Docker and Kubernetes manifests. The live demo runs on Cloudflare Workers.',
+    date: 'May 2026',
+    url: 'https://nextcommerce.naymulhasantanvir10.workers.dev',
+  },
+  {
     tag: 'WordPress Plugin',
     title: 'ThumbPress',
     text: 'A thumbnail and media optimization plugin used by thousands of WordPress sites to keep asset libraries clean, fast, and disk-efficient.',
     date: 'Dec 2023',
     url: 'https://thumbpress.co',
-  },
-  {
-    tag: 'WordPress Plugin',
-    title: 'Share Logins',
-    text: 'Cross-site login sharing for the WordPress ecosystem — one credential, many sites, zero friction.',
-    date: 'Feb 2022',
-    url: 'https://codexpert.io/share-logins',
   },
 ];
