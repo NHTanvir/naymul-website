@@ -8,7 +8,7 @@ export const site = {
   email: 'naymulhasantanvir10@gmail.com',
   phone: '+880198735554',
   phoneDisplay: '+880 198 7355 54',
-  location: 'Shiddhirgonj, Narayanganj, Dhaka 1430',
+  location: 'Dhaka, Bangladesh',
   locale: 'en_US',
 };
 
