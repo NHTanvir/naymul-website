@@ -64,7 +64,40 @@
     text-decoration: none;
     transition: color 0.2s ease;
 }
-.mp-project__link:hover { color: #6EE7B7; }
+/* "View project" is decoration (aria-hidden); the title link covers the card,
+   so it reacts to hovering the card rather than to hovering itself. */
+.mp-project:hover .mp-project__link { color: #6EE7B7; }
+
+/* -------- Card title is the link, stretched over the whole card -------- */
+/* The h3 must stay unpositioned so the title link's ::after resolves against
+   .mp-project and covers the whole card, not just the heading. z-index must be
+   cleared too: .mp-project is a flex container, and z-index applies to a flex
+   item even when it is static, so the `z-index: 1` from `.mp-project > *` would
+   make the h3 a stacking context and trap the overlay below its later siblings. */
+.mp-project h3 {
+    position: static;
+    z-index: auto;
+}
+.mp-project__title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.mp-project__title-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+}
+.mp-project:hover .mp-project__title-link { color: var(--mp-accent); }
+/* The outline belongs on the card, not on the heading text, because the
+   clickable area is the whole card. */
+.mp-project__title-link:focus-visible { outline: none; }
+.mp-project:has(.mp-project__title-link:focus-visible) {
+    outline: 2px solid var(--mp-accent);
+    outline-offset: 3px;
+}
 
 /* -------- Project card gradient border on hover -------- */
 .mp-project {
