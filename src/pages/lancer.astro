@@ -1,0 +1,1201 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import '@/styles/home/base.css';
+import { site } from '@/data/site';
+
+const repo = 'https://github.com/NHTanvir/lancer';
+
+const features = [
+  {
+    icon: 'fa-solid fa-tower-broadcast',
+    title: 'Intercept, edit, replay',
+    text: 'A TLS man-in-the-middle proxy with its own certificate authority. Install the CA once; leaf certificates are minted on the fly, so HTTPS traffic arrives readable. Scope rules and match-and-replace run before a request ever reaches the target.',
+  },
+  {
+    icon: 'fa-solid fa-screwdriver-wrench',
+    title: 'The whole HTTP tool set',
+    text: 'Repeater, Intruder, Decoder, Comparer and Sequencer, all sharing one request model — so anything sitting in history can be sent straight to any of them without a copy-paste round trip.',
+  },
+  {
+    icon: 'fa-solid fa-magnifying-glass-chart',
+    title: 'Passive and active scanning',
+    text: 'Findings raised from traffic as it flows through the proxy, plus active probes you aim yourself. An out-of-band collaborator catches the classes of bug that only announce themselves through a DNS or HTTP callback.',
+  },
+  {
+    icon: 'fa-solid fa-code',
+    title: 'Scriptable, not just configurable',
+    text: 'Filtering, matching and rewriting are real scripts rather than a wall of regex boxes. Rhai is embedded in the binary, so a script runs without a plugin toolchain or a JVM anywhere in sight.',
+  },
+  {
+    icon: 'fa-solid fa-database',
+    title: 'A project is a single file',
+    text: 'History, findings and configuration live in one SQLite file through sqlx. Copy it to another machine, commit it next to the engagement notes, or hand it to a teammate — no workspace to reconstruct.',
+  },
+  {
+    icon: 'fa-solid fa-robot',
+    title: 'Built for what ships now',
+    text: 'Alongside the classic web surface there are dedicated crates for LLM vulnerability scanning, LLM red-teaming and MCP server scanning — the attack surface that did not exist when the incumbents were designed.',
+  },
+];
+
+const stack = [
+  'Rust',
+  'tokio',
+  'hyper 1.x',
+  'HTTP/2',
+  'rustls 0.23',
+  'rcgen',
+  'sqlx',
+  'SQLite',
+  'rhai',
+  'clap',
+  'Tauri',
+  'No OpenSSL',
+];
+
+const crates = [
+  { name: 'lancer-core', text: 'Shared HTTP types, scope rules, project metadata, error types' },
+  { name: 'lancer-storage', text: 'SQLite-backed history, project files, configuration library' },
+  { name: 'lancer-proxy', text: 'TLS MITM proxy, CA management, interception, match-and-replace' },
+  { name: 'lancer-tools', text: 'Repeater, Decoder, Comparer, Sequencer, Intruder' },
+  { name: 'lancer-scanner', text: 'Passive and active scanner, Collaborator client' },
+  { name: 'lancer-script', text: 'Rhai-based scripting for filters, matches and rewrites' },
+  { name: 'lancer-cli', text: 'Headless entrypoint — the whole suite without a window' },
+  { name: 'lancer-gui', text: 'Tauri shell for the desktop interface (planned)' },
+];
+
+const alsoCrates = [
+  'lancer-oast',
+  'lancer-secrets',
+  'lancer-authbypass',
+  'lancer-deser',
+  'lancer-llm-scan',
+  'lancer-llm-redteam',
+  'lancer-mcp-scan',
+  'lancer-stateful-fuzz',
+  'lancer-exploitdb',
+  'lancer-triage',
+  'lancer-report',
+  'lancer-session',
+];
+
+const traffic = [
+  { method: 'GET', host: 'app.target.test', path: '/api/v1/users?id=1041', status: 200, len: '4.2 kB' },
+  { method: 'POST', host: 'app.target.test', path: '/login', status: 302, len: '0 B' },
+  { method: 'GET', host: 'app.target.test', path: '/admin/export.csv', status: 403, len: '118 B' },
+  { method: 'PUT', host: 'api.target.test', path: '/v1/account/avatar', status: 500, len: '1.1 kB' },
+];
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Lancer',
+  alternateName: 'Lancer Security Suite',
+  applicationCategory: 'SecurityApplication',
+  applicationSubCategory: 'Web application security testing',
+  operatingSystem: 'Linux, Windows',
+  programmingLanguage: 'Rust',
+  description:
+    'A Rust-native web-application security testing suite built as a 41-crate Cargo workspace: a TLS intercepting proxy with its own CA, Repeater and Intruder tooling, passive and active scanning, Rhai scripting and SQLite project files.',
+  url: new URL('/lancer/', site.url).href,
+  codeRepository: repo,
+  license: 'https://opensource.org/license/mit',
+  isAccessibleForFree: true,
+  author: { '@type': 'Person', name: site.name, url: site.url },
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+---
+
+<BaseLayout
+  title="Lancer — Rust web application security testing suite"
+  description="A Rust-native web application security testing suite and Burp Suite alternative. An intercepting TLS proxy with its own CA, repeater and intruder tooling, passive and active scanning, and Rhai scripting over SQLite project files."
+  section="page"
+>
+  <div class="lnc">
+    <!-- HERO -->
+    <section class="lnc-hero">
+      <div class="lnc-hero__glow" aria-hidden="true"></div>
+      <div class="lnc-hero__grid" aria-hidden="true"></div>
+
+      <div class="mp-container lnc-hero__layout">
+        <div class="lnc-hero__copy">
+          <span class="lnc-pill lnc-in">
+            <span class="lnc-pill__dot"></span>
+            Web application security testing · Early development
+          </span>
+          <h1 class="lnc-hero__title lnc-in lnc-in--1">
+            <span class="lnc-gradient">Lancer</span>
+          </h1>
+          <p class="lnc-hero__lede lnc-in lnc-in--2">
+            A web application security testing suite written in Rust. One intercepting proxy, one request model and one
+            project file behind every tool — aiming at feature parity with Burp Suite Community and Professional, and at
+            being considerably faster while it gets there.
+          </p>
+          <div class="lnc-hero__ctas lnc-in lnc-in--3">
+            <a class="lnc-btn lnc-btn--primary" href={repo} target="_blank" rel="noopener">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> View it on GitHub
+            </a>
+            <a class="lnc-btn lnc-btn--ghost" href="#build">
+              <i class="fa-solid fa-terminal" aria-hidden="true"></i> Build from source
+            </a>
+          </div>
+          <ul class="lnc-hero__facts lnc-in lnc-in--4">
+            <li><i class="fa-solid fa-cubes" aria-hidden="true"></i> 41-crate Cargo workspace</li>
+            <li><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> MIT or Apache-2.0</li>
+            <li><i class="fa-solid fa-lock" aria-hidden="true"></i> rustls — no OpenSSL</li>
+          </ul>
+        </div>
+
+        <!-- App mock -->
+        <div class="lnc-app lnc-in lnc-in--2" aria-hidden="true">
+          <div class="lnc-app__bar">
+            <span></span><span></span><span></span>
+            <em>Lancer · demo.lancer</em>
+          </div>
+          <div class="lnc-app__tabs">
+            <span class="is-active">Proxy</span>
+            <span>Repeater</span>
+            <span>Intruder</span>
+            <span>Scanner</span>
+            <span>Logger</span>
+          </div>
+          <div class="lnc-app__body">
+            <div class="lnc-app__head">
+              <strong>HTTP history</strong>
+              <span class="lnc-app__live"><span class="lnc-app__livedot"></span> intercepting</span>
+            </div>
+            {
+              traffic.map((t) => (
+                <div class="lnc-app__row">
+                  <span class:list={['lnc-app__method', `is-${t.method.toLowerCase()}`]}>{t.method}</span>
+                  <span class="lnc-app__url">
+                    <b>{t.host}</b>
+                    {t.path}
+                  </span>
+                  <span class:list={['lnc-app__status', `is-s${String(t.status)[0]}`]}>{t.status}</span>
+                  <span class="lnc-app__len">{t.len}</span>
+                </div>
+              ))
+            }
+            <div class="lnc-app__finding">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span><b>High</b> · Broken access control on <code>/admin/export.csv</code></span>
+              <em>passive</em>
+            </div>
+          </div>
+          <div class="lnc-app__float lnc-app__float--a"><i class="fa-solid fa-certificate"></i> Local CA trusted</div>
+          <div class="lnc-app__float lnc-app__float--b"><i class="fa-solid fa-bolt"></i> 127.0.0.1:8080</div>
+        </div>
+      </div>
+
+      <div class="lnc-marquee" aria-label="Technology stack">
+        <div class="lnc-marquee__track">
+          {[...stack, ...stack].map((s) => <span class="lnc-chip">{s}</span>)}
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="lnc-section">
+      <div class="mp-container">
+        <div class="lnc-head lnc-reveal">
+          <span class="mp-label">Why Lancer</span>
+          <h2 class="mp-section__title">A testing suite that behaves like one program</h2>
+          <p>
+            Not a proxy with tools bolted on. Every component shares the same HTTP types, the same scope rules and the
+            same project file, and the whole thing compiles to a native binary.
+          </p>
+        </div>
+        <div class="lnc-features">
+          {
+            features.map((f, i) => (
+              <article class="lnc-feature lnc-reveal" style={`--d:${i * 80}ms`}>
+                <div class="lnc-feature__icon">
+                  <i class={f.icon} aria-hidden="true" />
+                </div>
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+              </article>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKSPACE -->
+    <section class="lnc-section lnc-section--alt">
+      <div class="mp-container">
+        <div class="lnc-head lnc-reveal">
+          <span class="mp-label">Architecture</span>
+          <h2 class="mp-section__title">One workspace, one crate per concern</h2>
+          <p>
+            Lancer is a Cargo workspace of 41 crates. Each one owns a single slice of the problem, which keeps the proxy
+            hot path free of everything that is not the proxy.
+          </p>
+        </div>
+        <div class="lnc-crates">
+          {
+            crates.map((c, i) => (
+              <article class="lnc-crate lnc-reveal" style={`--d:${i * 60}ms`}>
+                <code>{c.name}</code>
+                <p>{c.text}</p>
+              </article>
+            ))
+          }
+        </div>
+        <div class="lnc-also lnc-reveal">
+          <p>…and 33 more, including:</p>
+          <div class="lnc-also__list">
+            {alsoCrates.map((c) => <code>{c}</code>)}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BUILD -->
+    <section class="lnc-section" id="build">
+      <div class="mp-container">
+        <div class="lnc-head lnc-reveal">
+          <span class="mp-label">Get started</span>
+          <h2 class="mp-section__title">Build it and point a browser at it</h2>
+          <p>There is no tagged release yet, so the way in is a clone and a release build. You will need a Rust toolchain.</p>
+        </div>
+        <div class="lnc-build lnc-reveal">
+          <div class="lnc-code">
+            <div class="lnc-code__bar">
+              <span>shell</span>
+              <em>Quick start</em>
+            </div>
+            <pre><code><span class="lnc-c"># Clone and build the workspace</span>
+git clone https://github.com/NHTanvir/lancer.git
+cd lancer
+cargo build --release
+
+<span class="lnc-c"># Generate a CA and install it in the system trust store (one-time)</span>
+cargo run --release -- cert init
+cargo run --release -- cert export --der ca.der
+
+<span class="lnc-c"># Run the proxy on the default port</span>
+cargo run --release -- proxy --listen 127.0.0.1:8080 \
+    --project ./demo.lancer
+
+<span class="lnc-c"># Inspect captured history</span>
+cargo run --release -- history list --project ./demo.lancer</code></pre>
+          </div>
+          <aside class="lnc-aside">
+            <h3>Where it stands</h3>
+            <p>
+              The CLI and the crates behind it are what works today — proxy, history, the HTTP tools, scanning and
+              scripting, driven from a terminal. A Tauri desktop shell is the planned front end rather than a finished
+              one.
+            </p>
+            <p>
+              The roadmap lives in <code>plan.md</code> in the repository, tracked feature by feature against Burp's own
+              surface, and it is the honest answer to “is the thing I need done yet”.
+            </p>
+            <a class="lnc-btn lnc-btn--ghost lnc-btn--block" href={`${repo}/blob/master/plan.md`} target="_blank" rel="noopener">
+              <i class="fa-solid fa-list-check" aria-hidden="true"></i> Read the roadmap
+            </a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTICES -->
+    <section class="lnc-section lnc-section--tight">
+      <div class="mp-container lnc-notices">
+        <div class="lnc-notice lnc-notice--warn lnc-reveal">
+          <div class="lnc-notice__icon"><i class="fa-solid fa-flask" aria-hidden="true"></i></div>
+          <div>
+            <h3>Early development — read this first</h3>
+            <p>
+              Lancer is being built in the open and is not ready to carry an engagement on its own. There is no signed
+              build, no installer and no stable interface: expect the command surface to move under you, and keep a tool
+              you already trust alongside it. Issues and reproductions are genuinely useful at this stage.
+            </p>
+          </div>
+        </div>
+        <div class="lnc-notice lnc-notice--legal lnc-reveal">
+          <div class="lnc-notice__icon"><i class="fa-solid fa-gavel" aria-hidden="true"></i></div>
+          <div>
+            <h3>Authorised testing only</h3>
+            <p>
+              This is an offensive security tool. Point it only at systems you own or have written permission to test —
+              your own lab, a client engagement with a signed scope, or a bug bounty programme whose rules you have read.
+              Testing a system without authorisation is a crime in most jurisdictions, and that is on the operator, not
+              the tool.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="lnc-cta">
+      <div class="mp-container lnc-cta__inner lnc-reveal">
+        <div>
+          <h2>Following along?</h2>
+          <p>The workspace is public, the roadmap is public, and the issue tracker is the fastest way to shape it.</p>
+        </div>
+        <div class="lnc-cta__btns">
+          <a class="lnc-btn lnc-btn--primary" href={repo} target="_blank" rel="noopener">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> Star on GitHub
+          </a>
+          <a class="lnc-btn lnc-btn--ghost" href={`${repo}/issues`} target="_blank" rel="noopener">
+            <i class="fa-solid fa-circle-dot" aria-hidden="true"></i> Open an issue
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />
+</BaseLayout>
+
+<script>
+  // Fade cards in as they scroll into view.
+  const items = document.querySelectorAll('.lnc-reveal');
+  if ('IntersectionObserver' in window) {
+    document.documentElement.classList.add('lnc-js');
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('is-visible');
+          io.unobserve(e.target);
+        }
+      },
+      { threshold: 0.15 },
+    );
+    items.forEach((el) => io.observe(el));
+  }
+</script>
+
+<style>
+  .lnc {
+    --vio: #818cf8;
+    --vio-2: #a5b4fc;
+    --vio-3: #c084fc;
+    --vio-soft: rgba(129, 140, 248, 0.12);
+    --vio-line: rgba(129, 140, 248, 0.3);
+    overflow-x: clip;
+  }
+
+  /* ---------- Hero ---------- */
+  .lnc-hero {
+    position: relative;
+    padding: 96px 0 0;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .lnc-hero__glow {
+    position: absolute;
+    inset: -20% -10% auto;
+    height: 760px;
+    z-index: -2;
+    background:
+      radial-gradient(40% 50% at 25% 30%, rgba(129, 140, 248, 0.22), transparent 70%),
+      radial-gradient(35% 45% at 78% 18%, rgba(192, 132, 252, 0.16), transparent 70%),
+      radial-gradient(30% 40% at 60% 80%, rgba(67, 56, 202, 0.28), transparent 70%);
+    filter: blur(10px);
+    animation: lnc-drift 18s ease-in-out infinite alternate;
+  }
+  .lnc-hero__grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+  }
+  @keyframes lnc-drift {
+    to {
+      transform: translate3d(3%, 4%, 0) scale(1.05);
+    }
+  }
+
+  .lnc-hero__layout {
+    display: grid;
+    grid-template-columns: 1.02fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .lnc-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vio-2);
+    background: var(--vio-soft);
+    border: 1px solid var(--vio-line);
+    border-radius: 999px;
+  }
+  .lnc-pill__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--vio);
+    box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.6);
+    animation: lnc-ping 2s infinite;
+  }
+  @keyframes lnc-ping {
+    70% {
+      box-shadow: 0 0 0 9px rgba(129, 140, 248, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(129, 140, 248, 0);
+    }
+  }
+
+  .lnc-hero__title {
+    margin: 22px 0 18px;
+    font-size: clamp(56px, 9vw, 104px);
+    line-height: 0.92;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+  }
+  .lnc-gradient {
+    background: linear-gradient(110deg, #a5b4fc 0%, #818cf8 35%, #e9d5ff 55%, #c084fc 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: lnc-shine 6s linear infinite;
+  }
+  @keyframes lnc-shine {
+    to {
+      background-position: 200% center;
+    }
+  }
+  .lnc-hero__lede {
+    max-width: 560px;
+    margin: 0 0 32px;
+    color: var(--mp-muted);
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .lnc-hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .lnc-hero__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    margin: 28px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--mp-subtle);
+    font-size: 14px;
+  }
+  .lnc-hero__facts i {
+    color: var(--vio);
+    margin-right: 6px;
+  }
+
+  /* ---------- Buttons ---------- */
+  .lnc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 24px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  }
+  .lnc-btn--primary {
+    color: #1e1b4b;
+    background: linear-gradient(135deg, #a5b4fc, #818cf8 50%, #c084fc);
+    box-shadow: 0 10px 30px -10px rgba(129, 140, 248, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .lnc-btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px -10px rgba(129, 140, 248, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .lnc-btn--ghost {
+    color: var(--mp-fg);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--mp-border-strong);
+    backdrop-filter: blur(8px);
+  }
+  .lnc-btn--ghost:hover {
+    border-color: rgba(129, 140, 248, 0.55);
+    background: var(--vio-soft);
+    transform: translateY(-2px);
+  }
+  .lnc-btn--block {
+    width: 100%;
+  }
+
+  /* ---------- App mock ---------- */
+  .lnc-app {
+    position: relative;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(24, 24, 27, 0.92), rgba(17, 17, 22, 0.92));
+    border: 1px solid var(--mp-border-strong);
+    box-shadow:
+      0 40px 80px -30px rgba(0, 0, 0, 0.8),
+      0 0 0 1px rgba(129, 140, 248, 0.08),
+      0 30px 90px -40px rgba(129, 140, 248, 0.45);
+    transform: perspective(1400px) rotateY(-8deg) rotateX(4deg);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lnc-app:hover {
+    transform: perspective(1400px) rotateY(0deg) rotateX(0deg);
+  }
+  .lnc-app__bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--mp-border);
+  }
+  .lnc-app__bar > span {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+  .lnc-app__bar > span:nth-child(1) {
+    background: #f87171;
+  }
+  .lnc-app__bar > span:nth-child(2) {
+    background: #fbbf24;
+  }
+  .lnc-app__bar > span:nth-child(3) {
+    background: #34d399;
+  }
+  .lnc-app__bar em {
+    /* Sits beside the traffic lights, not at the right edge, so the
+       "Local CA trusted" badge floating over the top-right corner
+       does not land on top of it. */
+    margin-left: 8px;
+    font-style: normal;
+    font-size: 12px;
+    color: var(--mp-subtle);
+  }
+  .lnc-app__tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 12px 0;
+    overflow: hidden;
+  }
+  .lnc-app__tabs span {
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mp-subtle);
+    border-radius: 8px 8px 0 0;
+    white-space: nowrap;
+  }
+  .lnc-app__tabs span.is-active {
+    color: var(--vio-2);
+    background: var(--vio-soft);
+    box-shadow: inset 0 -2px 0 var(--vio);
+  }
+  .lnc-app__body {
+    padding: 14px 18px 18px;
+    display: grid;
+    gap: 8px;
+  }
+  .lnc-app__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 14px;
+  }
+  .lnc-app__live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #fca5a5;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.28);
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+  .lnc-app__livedot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #f87171;
+    animation: lnc-blink 1.4s ease-in-out infinite;
+  }
+  @keyframes lnc-blink {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  .lnc-app__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--mp-border);
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .lnc-app__method {
+    flex-shrink: 0;
+    width: 42px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-align: center;
+    padding: 3px 0;
+    border-radius: 5px;
+    color: var(--vio-2);
+    background: var(--vio-soft);
+  }
+  .lnc-app__method.is-post {
+    color: #6ee7b7;
+    background: rgba(52, 211, 153, 0.14);
+  }
+  .lnc-app__method.is-put {
+    color: #fcd34d;
+    background: rgba(250, 204, 21, 0.14);
+  }
+  .lnc-app__url {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--mp-muted);
+  }
+  .lnc-app__url b {
+    color: var(--mp-fg);
+    font-weight: 600;
+  }
+  .lnc-app__status {
+    flex-shrink: 0;
+    font-weight: 700;
+    color: #6ee7b7;
+  }
+  .lnc-app__status.is-s3 {
+    color: #fcd34d;
+  }
+  .lnc-app__status.is-s4 {
+    color: #fdba74;
+  }
+  .lnc-app__status.is-s5 {
+    color: #f87171;
+  }
+  .lnc-app__len {
+    flex-shrink: 0;
+    width: 52px;
+    text-align: right;
+    color: var(--mp-subtle);
+    font-size: 11.5px;
+  }
+  .lnc-app__finding {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    padding: 12px 13px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.12), rgba(248, 113, 113, 0.03));
+    border: 1px solid rgba(248, 113, 113, 0.26);
+    font-size: 12.5px;
+    color: var(--mp-muted);
+  }
+  .lnc-app__finding i {
+    color: #f87171;
+  }
+  .lnc-app__finding b {
+    color: #fca5a5;
+  }
+  .lnc-app__finding code {
+    font-size: 11.5px;
+    color: var(--mp-fg);
+  }
+  .lnc-app__finding em {
+    margin-left: auto;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--mp-subtle);
+  }
+  .lnc-app__float {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(24, 24, 27, 0.9);
+    border: 1px solid var(--mp-border-strong);
+    border-radius: 12px;
+    box-shadow: var(--mp-shadow-md);
+    backdrop-filter: blur(10px);
+    animation: lnc-float 5s ease-in-out infinite;
+  }
+  .lnc-app__float i {
+    color: var(--vio);
+  }
+  .lnc-app__float--a {
+    top: -18px;
+    right: 24px;
+  }
+  .lnc-app__float--b {
+    bottom: -20px;
+    left: -18px;
+    animation-delay: -2.5s;
+  }
+  @keyframes lnc-float {
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* ---------- Stack marquee ---------- */
+  .lnc-marquee {
+    margin-top: 88px;
+    padding: 22px 0;
+    border-block: 1px solid var(--mp-border);
+    background: rgba(255, 255, 255, 0.015);
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  }
+  .lnc-marquee__track {
+    display: flex;
+    gap: 14px;
+    width: max-content;
+    animation: lnc-marquee 30s linear infinite;
+  }
+  .lnc-marquee:hover .lnc-marquee__track {
+    animation-play-state: paused;
+  }
+  @keyframes lnc-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .lnc-chip {
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mp-muted);
+    border: 1px solid var(--mp-border-strong);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Sections ---------- */
+  .lnc-section {
+    padding: 110px 0;
+  }
+  .lnc-section--alt {
+    background:
+      radial-gradient(50% 60% at 50% 0%, rgba(129, 140, 248, 0.08), transparent 70%),
+      var(--mp-alt);
+    border-block: 1px solid var(--mp-border);
+  }
+  .lnc-section--tight {
+    padding: 80px 0;
+  }
+  .lnc-head {
+    max-width: 660px;
+    margin: 0 auto 56px;
+    text-align: center;
+  }
+  .lnc-head .mp-label {
+    color: var(--vio-2);
+    background: var(--vio-soft);
+  }
+  .lnc-head p {
+    margin: 0;
+    color: var(--mp-muted);
+    font-size: 17px;
+    line-height: 1.7;
+  }
+
+  /* ---------- Features ---------- */
+  .lnc-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .lnc-feature {
+    position: relative;
+    padding: 32px 28px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--mp-card), rgba(24, 24, 27, 0.5));
+    border: 1px solid var(--mp-border);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .lnc-feature::before {
+    content: '';
+    position: absolute;
+    inset: 0 30% auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--vio), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .lnc-feature:hover {
+    transform: translateY(-6px);
+    border-color: rgba(129, 140, 248, 0.35);
+    box-shadow: 0 24px 50px -24px rgba(129, 140, 248, 0.35);
+  }
+  .lnc-feature:hover::before {
+    opacity: 1;
+  }
+  .lnc-feature__icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 22px;
+    border-radius: 14px;
+    font-size: 20px;
+    color: var(--vio-2);
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(129, 140, 248, 0.05));
+    border: 1px solid var(--vio-line);
+  }
+  .lnc-feature h3 {
+    margin: 0 0 10px;
+    font-size: 19px;
+    font-weight: 700;
+  }
+  .lnc-feature p {
+    margin: 0;
+    color: var(--mp-muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ---------- Crates ---------- */
+  .lnc-crates {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .lnc-crate {
+    padding: 24px 22px;
+    border-radius: 16px;
+    background: var(--mp-card);
+    border: 1px solid var(--mp-border);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+  .lnc-crate:hover {
+    transform: translateY(-4px);
+    border-color: rgba(129, 140, 248, 0.35);
+  }
+  .lnc-crate code {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--vio-2);
+    overflow-wrap: anywhere;
+  }
+  .lnc-crate p {
+    margin: 0;
+    color: var(--mp-muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .lnc-also {
+    margin-top: 32px;
+    text-align: center;
+  }
+  .lnc-also p {
+    margin: 0 0 16px;
+    color: var(--mp-subtle);
+    font-size: 14px;
+  }
+  .lnc-also__list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .lnc-also__list code {
+    padding: 7px 13px;
+    font-size: 12.5px;
+    color: var(--mp-muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--mp-border);
+    border-radius: 999px;
+  }
+
+  /* ---------- Build ---------- */
+  .lnc-build {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .lnc-code {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #050507;
+    border: 1px solid var(--mp-border-strong);
+    box-shadow: var(--mp-shadow-lg);
+  }
+  .lnc-code__bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--mp-border);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .lnc-code__bar span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--vio-2);
+    background: var(--vio-soft);
+    padding: 4px 9px;
+    border-radius: 6px;
+  }
+  .lnc-code__bar em {
+    font-style: normal;
+    font-size: 12px;
+    color: var(--mp-subtle);
+  }
+  .lnc-code pre {
+    margin: 0;
+    padding: 22px;
+    overflow-x: auto;
+  }
+  .lnc-code code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.85;
+    color: #e4e4e7;
+    white-space: pre;
+  }
+  .lnc-c {
+    color: #71717a;
+  }
+  .lnc-aside {
+    padding: 28px 26px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--mp-card), rgba(24, 24, 27, 0.5));
+    border: 1px solid var(--mp-border);
+  }
+  .lnc-aside h3 {
+    margin: 0 0 12px;
+    font-size: 19px;
+  }
+  .lnc-aside p {
+    margin: 0 0 14px;
+    color: var(--mp-muted);
+    font-size: 14.5px;
+    line-height: 1.7;
+  }
+  .lnc-aside code {
+    font-size: 13px;
+    color: var(--vio-2);
+  }
+  .lnc-aside .lnc-btn {
+    margin-top: 6px;
+  }
+
+  /* ---------- Notices ---------- */
+  .lnc-notices {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px;
+  }
+  .lnc-notice {
+    display: flex;
+    gap: 20px;
+    padding: 28px 30px;
+    border-radius: 18px;
+  }
+  .lnc-notice--warn {
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(250, 204, 21, 0.02));
+    border: 1px solid rgba(250, 204, 21, 0.25);
+  }
+  .lnc-notice--legal {
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.08), rgba(248, 113, 113, 0.02));
+    border: 1px solid rgba(248, 113, 113, 0.25);
+  }
+  .lnc-notice__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    font-size: 20px;
+  }
+  .lnc-notice--warn .lnc-notice__icon {
+    color: var(--mp-yellow);
+    background: rgba(250, 204, 21, 0.12);
+  }
+  .lnc-notice--legal .lnc-notice__icon {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.12);
+  }
+  .lnc-notice h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  .lnc-notice p {
+    margin: 0;
+    color: var(--mp-muted);
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+
+  /* ---------- CTA ---------- */
+  .lnc-cta {
+    padding: 0 0 110px;
+  }
+  .lnc-cta__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    max-width: 1000px;
+    padding: 44px 48px;
+    border-radius: 22px;
+    background:
+      radial-gradient(70% 120% at 10% 0%, rgba(129, 140, 248, 0.16), transparent 70%),
+      var(--mp-card);
+    border: 1px solid var(--vio-line);
+    box-shadow: 0 40px 80px -40px rgba(129, 140, 248, 0.4);
+  }
+  .lnc-cta__inner h2 {
+    margin: 0 0 8px;
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .lnc-cta__inner p {
+    margin: 0;
+    max-width: 440px;
+    color: var(--mp-muted);
+    font-size: 15.5px;
+    line-height: 1.7;
+  }
+  .lnc-cta__btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ---------- Motion ---------- */
+  .lnc-in {
+    animation: lnc-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .lnc-in--1 { animation-delay: 0.08s; }
+  .lnc-in--2 { animation-delay: 0.16s; }
+  .lnc-in--3 { animation-delay: 0.24s; }
+  .lnc-in--4 { animation-delay: 0.32s; }
+  @keyframes lnc-up {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  :global(.lnc-js) .lnc-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms);
+  }
+  :global(.lnc-js) .lnc-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+  :global(.lnc-js) .lnc-feature.lnc-reveal.is-visible:hover {
+    transform: translateY(-6px);
+  }
+  :global(.lnc-js) .lnc-crate.lnc-reveal.is-visible:hover {
+    transform: translateY(-4px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lnc-marquee__track,
+    .lnc-hero__glow,
+    .lnc-app__float,
+    .lnc-gradient,
+    .lnc-pill__dot,
+    .lnc-app__livedot {
+      animation: none;
+    }
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1080px) {
+    .lnc-features {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .lnc-crates {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 960px) {
+    .lnc-hero {
+      padding-top: 64px;
+    }
+    .lnc-hero__layout {
+      grid-template-columns: 1fr;
+      gap: 64px;
+    }
+    .lnc-app {
+      transform: none;
+      max-width: 560px;
+    }
+    .lnc-build,
+    .lnc-notices {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 680px) {
+    .lnc-section {
+      padding: 80px 0;
+    }
+    .lnc-features,
+    .lnc-crates {
+      grid-template-columns: 1fr;
+      max-width: 560px;
+      margin-inline: auto;
+    }
+    .lnc-hero__ctas .lnc-btn,
+    .lnc-cta__btns .lnc-btn {
+      width: 100%;
+    }
+    .lnc-app__float--b {
+      left: 8px;
+    }
+    .lnc-app__len {
+      display: none;
+    }
+    .lnc-notice {
+      flex-direction: column;
+      padding: 24px;
+    }
+    .lnc-cta__inner {
+      padding: 32px 24px;
+    }
+    .lnc-cta {
+      padding-bottom: 80px;
+    }
+  }
+</style>
