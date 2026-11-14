@@ -1,6 +1,10 @@
 ---
 import { projects } from '@/data/projects';
 import '@/styles/home/projects.css';
+
+// Two of the cards point at pages on this site (/wp-pond/, /lancer/) and one points
+// off-site. Only the off-site one should open a new tab or claim to be an external link.
+const isExternal = (url: string) => /^https?:\/\//.test(url);
 ---
 
 <section class="mp-projects" id="projects">
@@ -22,9 +26,21 @@ import '@/styles/home/projects.css';
                 <i class="fa-regular fa-calendar" aria-hidden="true" /> {p.date}
               </span>
             </div>
-            <a href={p.url} target="_blank" rel="noopener" class="mp-project__link">
-              View project <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
-              <span class="sr-only">: {p.title}</span>
+            <a
+              href={p.url}
+              target={isExternal(p.url) ? '_blank' : undefined}
+              rel={isExternal(p.url) ? 'noopener noreferrer' : undefined}
+              class="mp-project__link"
+            >
+              View project
+              <i
+                class={isExternal(p.url) ? 'fa-solid fa-arrow-up-right-from-square' : 'fa-solid fa-arrow-right'}
+                aria-hidden="true"
+              />
+              <span class="sr-only">
+                : {p.title}
+                {isExternal(p.url) ? ' (opens in a new tab)' : ''}
+              </span>
             </a>
           </article>
         ))
