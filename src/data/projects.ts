@@ -26,6 +26,6 @@ export const projects: Project[] = [
     title: 'Lancer',
     text: 'A Rust workspace building a web-application security testing suite — an intercepting TLS proxy with its own CA, repeater and intruder tooling, passive and active scanning, and Rhai scripting over SQLite project files. In early development.',
     date: 'Jun 2026',
-    url: 'https://github.com/NHTanvir/lancer',
+    url: '/lancer/',
   },
 ];
