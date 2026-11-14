@@ -3,95 +3,267 @@ import Logo from './Logo.astro';
 import { nav, site, socials } from '@/data/site';
 
 const year = new Date().getFullYear();
+
+const contact = [
+  { icon: 'fa-solid fa-envelope', label: site.email, href: `mailto:${site.email}` },
+  { icon: 'fa-solid fa-phone', label: site.phoneDisplay, href: `tel:${site.phone}` },
+  { icon: 'fa-solid fa-location-dot', label: site.location, href: null },
+];
 ---
 
 <footer class="nt-footer">
-  <div class="mp-container nt-footer__top">
-    <Logo />
-    <nav aria-label="Footer">
-      <ul class="nt-footer__nav">
-        {nav.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
-      </ul>
-    </nav>
-    <ul class="nt-footer__social">
-      {
-        socials.map((s) => (
-          <li>
-            <a href={s.href} aria-label={s.label} target={s.href.startsWith('http') ? '_blank' : undefined} rel="noopener">
-              <i class={s.icon} aria-hidden="true" />
-            </a>
-          </li>
-        ))
-      }
-    </ul>
-  </div>
-  <div class="mp-container nt-footer__bottom">
-    <p>© {year} {site.shortName}. All rights reserved.</p>
+  <div class="mp-container nt-footer__inner">
+    <div class="nt-footer__grid">
+      <div class="nt-footer__brand">
+        <Logo />
+        <p class="nt-footer__tagline">
+          Rust &amp; full-stack engineer — native desktop apps, command-line tools and web
+          products that ship and keep working.
+        </p>
+        <ul class="nt-footer__social">
+          {
+            socials.map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  aria-label={s.label}
+                  target={s.href.startsWith('http') ? '_blank' : undefined}
+                  rel="noopener"
+                >
+                  <i class={s.icon} aria-hidden="true" />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <nav class="nt-footer__col" aria-label="Footer">
+        <h2 class="nt-footer__heading">Explore</h2>
+        <ul class="nt-footer__links">
+          {nav.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+        </ul>
+      </nav>
+
+      <div class="nt-footer__col">
+        <h2 class="nt-footer__heading">Get in touch</h2>
+        <ul class="nt-footer__contact">
+          {
+            contact.map((c) => (
+              <li>
+                <i class={c.icon} aria-hidden="true" />
+                {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="nt-footer__bottom">
+      <p>© {year} {site.name}. All rights reserved.</p>
+      <a class="nt-footer__totop" href="#main">
+        Back to top <i class="fa-solid fa-arrow-up" aria-hidden="true" />
+      </a>
+    </div>
   </div>
 </footer>
 
 <style>
   .nt-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    border-top: 1px solid var(--mp-border);
+    background: var(--mp-alt);
     color: var(--mp-muted);
-    padding: 56px 0 32px;
-    text-align: center;
   }
-  .nt-footer__top {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 24px;
+  .nt-footer::before {
+    content: '';
+    position: absolute;
+    inset: -1px 0 auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.45), transparent);
   }
-  .nt-footer__nav,
-  .nt-footer__social {
+  .nt-footer__inner {
+    padding-top: 44px;
+    padding-bottom: 20px;
+  }
+
+  .nt-footer__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 32px 48px;
+  }
+
+  .nt-footer__tagline {
+    margin: 16px 0 20px;
+    max-width: 38ch;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--mp-subtle);
+  }
+
+  .nt-footer__heading {
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mp-fg);
+  }
+
+  .nt-footer__social,
+  .nt-footer__links,
+  .nt-footer__contact {
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  .nt-footer__social {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-  }
-  .nt-footer__nav {
-    gap: 6px 22px;
-  }
-  .nt-footer__nav a {
-    color: var(--mp-muted);
-    font-size: 15px;
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-  .nt-footer__nav a:hover {
-    color: var(--mp-accent);
-  }
-  .nt-footer__social {
-    gap: 12px;
+    gap: 8px;
   }
   .nt-footer__social a {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--mp-card);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--mp-border);
     color: var(--mp-muted);
-    border-radius: 10px;
-    font-size: 15px;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    border-radius: 9px;
+    font-size: 13px;
+    line-height: 1;
+    text-decoration: none;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
   }
   .nt-footer__social a:hover {
-    background: var(--mp-accent);
-    color: #0B0B0F;
+    background: var(--mp-accent-soft);
+    border-color: rgba(52, 211, 153, 0.4);
+    color: var(--mp-accent);
     transform: translateY(-2px);
   }
+
+  .nt-footer__links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+  .nt-footer__links a,
+  .nt-footer__contact a {
+    color: var(--mp-muted);
+    font-size: 14px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .nt-footer__links a {
+    position: relative;
+    display: inline-block;
+  }
+  .nt-footer__links a::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    width: 5px;
+    height: 1px;
+    background: var(--mp-accent);
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .nt-footer__links a:hover,
+  .nt-footer__contact a:hover {
+    color: var(--mp-accent);
+  }
+  .nt-footer__links a:hover::before {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+
+  .nt-footer__contact li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--mp-muted);
+  }
+  .nt-footer__contact li + li {
+    margin-top: 10px;
+  }
+  .nt-footer__contact i {
+    flex: 0 0 auto;
+    width: 15px;
+    font-size: 12px;
+    color: var(--mp-accent);
+    text-align: center;
+  }
+  .nt-footer__contact span {
+    color: var(--mp-subtle);
+  }
+
   .nt-footer__bottom {
-    margin-top: 28px;
-    padding-top: 28px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 20px;
+    flex-wrap: wrap;
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--mp-border);
   }
   .nt-footer__bottom p {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--mp-subtle);
+  }
+  .nt-footer__totop {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--mp-subtle);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .nt-footer__totop i {
+    font-size: 11px;
+    transition: transform 0.2s ease;
+  }
+  .nt-footer__totop:hover {
+    color: var(--mp-accent);
+  }
+  .nt-footer__totop:hover i {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 900px) {
+    .nt-footer__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px 32px;
+    }
+    .nt-footer__brand {
+      grid-column: 1 / -1;
+    }
+    .nt-footer__bottom {
+      margin-top: 28px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .nt-footer__inner {
+      padding-top: 36px;
+    }
+    .nt-footer__grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 26px;
+    }
+    .nt-footer__links {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .nt-footer__bottom {
+      justify-content: flex-start;
+    }
   }
 </style>
