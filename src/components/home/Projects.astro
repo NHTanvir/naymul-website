@@ -4,6 +4,8 @@ import '@/styles/home/projects.css';
 
 // Two of the cards point at pages on this site (/wp-pond/, /lancer/) and one points
 // off-site. Only the off-site one should open a new tab or claim to be an external link.
+// The card title carries the link so the anchor text is the project name rather than
+// three identical "View project" links.
 const isExternal = (url: string) => /^https?:\/\//.test(url);
 ---
 
@@ -19,29 +21,29 @@ const isExternal = (url: string) => /^https?:\/\//.test(url);
         projects.map((p, i) => (
           <article class={`mp-project mp-reveal mp-reveal--d${i + 1}`}>
             <span class="mp-project__tag">{p.tag}</span>
-            <h3>{p.title}</h3>
+            <h3>
+              <a
+                href={p.url}
+                target={isExternal(p.url) ? '_blank' : undefined}
+                rel={isExternal(p.url) ? 'noopener noreferrer' : undefined}
+                class="mp-project__title-link"
+              >
+                {p.title}
+                {isExternal(p.url) && <span class="sr-only"> (opens in a new tab)</span>}
+              </a>
+            </h3>
             <p>{p.text}</p>
             <div class="mp-project__meta">
               <span>
                 <i class="fa-regular fa-calendar" aria-hidden="true" /> {p.date}
               </span>
             </div>
-            <a
-              href={p.url}
-              target={isExternal(p.url) ? '_blank' : undefined}
-              rel={isExternal(p.url) ? 'noopener noreferrer' : undefined}
-              class="mp-project__link"
-            >
+            {/* Decoration, not a link: the title above is the card's single link and
+                its ::after covers the whole card, so this line is already clickable. */}
+            <span class="mp-project__link" aria-hidden="true">
               View project
-              <i
-                class={isExternal(p.url) ? 'fa-solid fa-arrow-up-right-from-square' : 'fa-solid fa-arrow-right'}
-                aria-hidden="true"
-              />
-              <span class="sr-only">
-                : {p.title}
-                {isExternal(p.url) ? ' (opens in a new tab)' : ''}
-              </span>
-            </a>
+              <i class={isExternal(p.url) ? 'fa-solid fa-arrow-up-right-from-square' : 'fa-solid fa-arrow-right'} />
+            </span>
           </article>
         ))
       }
