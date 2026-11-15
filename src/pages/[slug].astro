@@ -5,6 +5,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import avatar from '@/assets/me-hero.jpg';
 import { excerptOf, formatDate, getPosts, readingMinutes, slugify, type Post } from '@/lib/posts';
 import { site } from '@/data/site';
+import { blogPostingSchema, breadcrumbSchema, faqSchema, personSchema } from '@/lib/schema';
 import '@/styles/home/base.css';
 import '@/styles/blog.css';
 
@@ -30,14 +31,34 @@ const minutes = readingMinutes(post);
 const permalink = new URL(`/${post.id}/`, Astro.site).href;
 const shareUrl = encodeURIComponent(permalink);
 const shareTitle = encodeURIComponent(title);
+
+// Structured data: one @graph so the article, its author and its FAQ all
+// reference each other. The FAQ is read straight out of the post's own
+// "Questions people ask" section, which is what answer engines quote.
+const base = (Astro.site ?? new URL(site.url)).href;
+const imageUrl = cover ? new URL(cover.src, base).href : undefined;
+const jsonLd = [
+  blogPostingSchema(post, permalink, base, imageUrl),
+  personSchema(base),
+  breadcrumbSchema(base, [
+    { name: 'Home', url: base },
+    { name: 'Blog', url: new URL('/blogs/', base).href },
+    { name: title, url: permalink },
+  ]),
+  faqSchema(post, permalink),
+].filter(Boolean) as Record<string, unknown>[];
 ---
 
 <BaseLayout
   title={title}
   description={excerptOf(post, 40)}
   image={cover?.src}
+  imageAlt={coverAlt || title}
   type="article"
   publishedTime={publishedDate.toISOString()}
+  modifiedTime={publishedDate.toISOString()}
+  tags={tags}
+  jsonLd={jsonLd}
   section="blog"
 >
   <div class="nt-blog">

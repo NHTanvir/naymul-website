@@ -32,3 +32,56 @@ export function excerptOf(post: Post, words = 22): string {
     .filter(Boolean);
   return text.slice(0, words).join(' ') + (text.length > words ? '…' : '');
 }
+
+/** Markdoc/Markdown reduced to readable plain text, for meta tags and JSON-LD. */
+export function toPlainText(markup: string): string {
+  return markup
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\{%[^%]*%\}/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|\s)[*_]([^*_]+)[*_]/g, '$1$2')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/\|/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Words in the body, ignoring code blocks — for `wordCount` in structured data. */
+export function wordsIn(post: Post): number {
+  return toPlainText(post.body ?? '').split(/\s+/).filter(Boolean).length;
+}
+
+export interface Faq {
+  question: string;
+  answer: string;
+}
+
+/**
+ * Question/answer pairs lifted out of a post's FAQ section.
+ *
+ * Looks for an `## Questions people ask` (or `## FAQ`) heading and treats every
+ * `###` under it as a question. Used to emit FAQPage structured data, which is
+ * what answer engines read when they quote a page.
+ */
+export function faqOf(post: Post): Faq[] {
+  const body = post.body ?? '';
+  const section = body.match(
+    /^##\s+(?:questions[^\n]*|faq|frequently asked[^\n]*)\n([\s\S]*?)(?=^##\s|$(?![\s\S]))/im,
+  );
+  if (!section) return [];
+
+  const out: Faq[] = [];
+  const re = /^###\s+(.+?)\s*\n([\s\S]*?)(?=^###\s|$(?![\s\S]))/gim;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(section[1])) !== null) {
+    const question = toPlainText(m[1]);
+    const answer = toPlainText(m[2]);
+    if (question && answer) out.push({ question, answer });
+  }
+  return out;
+}

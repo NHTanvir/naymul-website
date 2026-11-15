@@ -2,12 +2,31 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostList from '@/components/blog/PostList.astro';
 import { getPosts } from '@/lib/posts';
+import { site } from '@/data/site';
+import { blogSchema, breadcrumbSchema, personSchema, websiteSchema } from '@/lib/schema';
 import '@/styles/home/base.css';
 
 const posts = await getPosts();
+
+const base = (Astro.site ?? new URL(site.url)).href;
+const blogUrl = new URL('/blogs/', base).href;
+const jsonLd = [
+  blogSchema(posts, base, blogUrl),
+  websiteSchema(base),
+  personSchema(base),
+  breadcrumbSchema(base, [
+    { name: 'Home', url: base },
+    { name: 'Blog', url: blogUrl },
+  ]),
+];
 ---
 
-<BaseLayout title="Blogs" description="Writing about React, Node.js, AI, WordPress, and what I learn while shipping real software." section="blog">
+<BaseLayout
+  title="Blogs"
+  description="Writing about React, Node.js, AI, WordPress, and what I learn while shipping real software."
+  section="blog"
+  jsonLd={jsonLd}
+>
   <PostList
     eyebrow="The Blog"
     title="Blogs"

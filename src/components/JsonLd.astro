@@ -1,0 +1,17 @@
+---
+/**
+ * Structured data for search engines and answer engines.
+ *
+ * Emitted as a single `@graph` so the nodes can reference each other by `@id`
+ * (the article's author and publisher are the same Person node, declared once).
+ */
+interface Props {
+  schema: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const { schema } = Astro.props;
+const graph = Array.isArray(schema) ? schema : [schema];
+const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
+---
+
+<script type="application/ld+json" is:inline set:html={json} />

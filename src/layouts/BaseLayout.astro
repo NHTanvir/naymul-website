@@ -13,10 +13,14 @@ interface Props {
   title?: string;
   description?: string;
   image?: string;
+  imageAlt?: string;
   type?: 'website' | 'article';
   publishedTime?: string;
+  modifiedTime?: string;
+  tags?: string[];
   noindex?: boolean;
   section?: 'home' | 'blog' | 'page';
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const { section, ...props } = Astro.props;
