@@ -9,6 +9,10 @@ tags:
   - Claude Code
   - Schema Design
   - Developer Tools
+cover: ../../assets/images/posts/audit-ai-generated-database-schema.png
+coverAlt: >-
+  Two database columns on a dark background, posts.user_id and users.id, joined
+  by a red dashed arrow labelled "no foreign key enforces this".
 draft: false
 ---
 Ask any coding agent for a database schema and you get one in about four seconds. It will have sensible table names, plausible columns and a comment above each one. It will look like something a careful person wrote. Then six months of rows land in it and you find out that nothing was enforcing the foreign keys, every `created_at` sorts alphabetically, and the totals stopped reconciling three releases ago.
