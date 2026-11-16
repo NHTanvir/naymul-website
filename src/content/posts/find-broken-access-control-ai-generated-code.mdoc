@@ -1,0 +1,508 @@
+---
+title: How to Find Broken Access Control in AI-Generated Code
+excerpt: >-
+  Broken access control is OWASP's #1 risk, and coding agents write it one
+  correct-looking handler at a time. Here is how to map who can reach what and
+  fix it.
+publishedDate: 2026-11-16
+category: Security
+tags:
+  - Access Control
+  - API Security
+  - Next.js
+  - Express
+  - Claude Code
+  - Developer Tools
+cover: ../../assets/images/posts/find-broken-access-control-ai-generated-code.png
+coverAlt: >-
+  Two boxes on a dark background, "anyone" and "DELETE /api/projects/:id",
+  joined by a red dashed arrow labelled "no guard found on this route", above
+  the line "20 findings, 8 critical, 13 routes".
+draft: false
+---
+Ask a coding agent for a projects API and you get forty lines that work on the first run: list, read, create, update, delete. Ask for an admin page and a billing endpoint and those work too.
+
+Then read what you were actually given. The delete route has no middleware on it. The read route checks that you are logged in and never checks that the project is yours. The admin router checks that you are logged in and never checks that you are an admin. The "delete my account" server action deletes whichever account id the caller passes in.
+
+Every one of those handlers looks correct when you read it on its own, which is exactly why none of them gets caught.
+
+**The short answer:** to find broken access control in AI-generated code, stop reviewing handlers one at a time. List every route the codebase exposes, resolve the whole guard chain in front of each one — the router mount, the middleware, and the checks inside the handler — and sort every route into one of four levels: public, authenticated, owner-scoped or role-gated. The bugs are the rows where the level is lower than the data deserves.
+
+That is mechanical work, so I built a tool that does it mechanically. [gatescope](https://github.com/NHTanvir/gatescope) reads a codebase and prints the matrix of who can reach what, with every guard chain resolved and every unguarded route named, each one cited to a file and a line. This post is how to use it, and how to fix what it finds.
+
+**Key takeaways**
+
+- Broken access control is ranked first in the OWASP Top 10:2025, and OWASP found some form of it in 100% of the applications it tested.
+- AI-generated code fails by omission. Each handler is right; the check that is missing does not belong to any single handler.
+- Every route resolves to one of four levels — public, authenticated, owner-scoped, role-gated — and a route-by-caller matrix makes a wrong level visible at a glance.
+- A Next.js server action is a POST endpoint. A login check on the page does not protect it.
+- A static audit can tell you that no guard was found. It cannot tell you a route is vulnerable, and a tool that says otherwise is guessing.
+
+## What is broken access control?
+
+Broken access control is any failure to enforce who is allowed to do what: a request reaches data or an action that its caller should never have been able to reach.
+
+OWASP's definition is one sentence: "Access control enforces policy such that users cannot act outside of their intended permissions." The category has been number one in the OWASP Top 10 since 2021, and it stayed there in the [2025 edition](https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/), where OWASP reports that **100% of the applications tested had some form of broken access control**, across 1,839,701 recorded occurrences — more than any other category on the list.
+
+In an API it takes four shapes:
+
+| Shape | What it looks like | Also called |
+|---|---|---|
+| No authentication | `DELETE /api/projects/:id` with no guard at all | missing authentication, unprotected endpoint |
+| No ownership check | Logged in, and any user reads or edits any row by changing the id | IDOR, BOLA |
+| No role check | An admin route that only checks that you are logged in | broken function level authorization |
+| Privilege from the request | `role`, `plan` or `userId` taken from the body or the arguments | mass assignment, privilege escalation |
+
+The second shape is the one OWASP's API Security project ranks first on its own list, as [API1:2023 Broken Object Level Authorization](https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/): every endpoint that receives the id of an object and acts on it has to check that *this* caller may act on *that* object.
+
+## Why do coding agents write broken access control?
+
+Because it is a bug of omission, and an agent has nothing to omit against.
+
+A database schema is one artifact, and a reviewer can hold it in view. Access control is not an artifact. It is a property of the whole route table — which guard runs in front of which handler, on which router, mounted where — and it gets assembled one prompt at a time by something that was shown one file at a time.
+
+Brendan Hann at Snyk [described the mechanism](https://snyk.io/blog/ai-coding-agents-broken-access-control/) precisely: "The defect is the absence of a comparison that only the application's own rules require." Nothing dangerous is called. No untrusted value reaches anywhere it should not. Every line is idiomatic. The handler simply never compares the row's owner with the caller, and nothing in the prompt said that it should.
+
+The data says this is not improving on its own. Veracode's [2025 GenAI Code Security Report](https://www.veracode.com/press-release/ai-generated-code-poses-major-security-risks-in-nearly-half-of-all-development-tasks-veracode-research-reveals/) ran 80 coding tasks across more than 100 models and found that LLMs introduced an OWASP Top 10 vulnerability in 45 percent of test cases. Its conclusion: "models are getting better at coding accurately but are not improving at security."
+
+So the failures are consistent:
+
+- **The guard is on the handlers somebody remembered.** `requireAuth` on four routes and missing on the fifth. It survives review because the four above it are correct.
+- **Logged in is treated as allowed.** The handler looks a row up by the id in the URL, so any authenticated user reaches any row by changing one number.
+- **The UI is treated as the guard.** The admin link is hidden and the button is not rendered. The route is still there.
+- **Identity arrives as an argument.** `deleteAccount(userId)` acts on whichever account the caller names.
+
+None of this fails code review, because review happens one diff at a time, and the bug in AI-generated code like this is not in any one diff.
+
+## The four access levels every route resolves to
+
+The useful question is never "is this route protected". It is "which of these four is it, and did anyone decide that":
+
+| Level | What it means | Who gets through |
+|---|---|---|
+| `public` | No guard was found anywhere in the chain | Anyone who can reach the host |
+| `authed` | Identity is established | Any logged-in user |
+| `owner` | The query is constrained to the caller's own rows | A logged-in user, for their own data only |
+| `role` | Authority is asserted, and the role is named | Only callers holding that role |
+
+Authentication answers *who are you*. Authorization answers *what may you do*. `authed` is only the first answer. `owner` and `role` are the two forms of the second, and most broken access control is a route sitting at `authed` that should have been one of those.
+
+## What is an access control matrix?
+
+An access control matrix — penetration testers usually call it an authorization matrix — is a grid with routes down the side, callers across the top, and one cell per pair saying whether that caller gets through.
+
+It is the oldest tool in access control review and the most tedious one to build, because somebody has to fill it in by hand. That is why it is rarely built and almost never current.
+
+gatescope derives it from the code instead. This is the matrix for the example API that ships in the repository — 13 routes of ordinary agent output across Express and Next.js:
+
+| Route | anon | user | guard chain |
+|---|---|---|---|
+| `POST /#deleteAccount` | 🔴 | ✓ | `—` |
+| `POST /#updatePlan` | 🔴 | ✓ | `—` |
+| `POST /api/billing` | 🔴 | ✓ | `—` |
+| `DELETE /api/projects/:id` | 🔴 | ✓ | `—` |
+| `GET /api/billing` | ✓ | ✓ | `—` |
+| `GET /debug/dump` | ✓ | ✓ | `—` |
+| `POST /login` | ✓ | ✓ | `—` |
+| `GET /api/admin/users` | · | ✓ | `requireAuth` |
+| `POST /api/admin/users/:id/promote` | · | ✓ | `requireAuth` |
+| `GET /api/projects` | · | own | `requireAuth` |
+| `POST /api/projects` | · | own | `requireAuth` |
+| `GET /api/projects/:id` | · | ✓ | `requireAuth` |
+| `PATCH /api/projects/:id` | · | ✓ | `getServerSession` |
+
+🔴 reachable by anyone and it writes · ✓ reachable · `own` scoped to the caller's own rows · `·` blocked
+
+Three things are visible here that no single file shows:
+
+- **Four rows start with 🔴.** Anyone on the internet can delete a project, create an invoice, delete an account or change a plan.
+- **`GET /api/projects/:id` says ✓ where the two rows above it say `own`.** Listing projects is scoped to the caller. Reading one by id is not.
+- **There are only two caller columns.** gatescope adds a column for every role it finds, and it found none — including on the two `/api/admin` routes. The missing column is the finding.
+
+## How to audit access control in an AI-generated codebase
+
+The whole process is six steps:
+
+1. **Install gatescope** — one paste into your agent, or one `git clone`.
+2. **Run the audit on the repository root**, not on one folder. The guard for a route often lives in a different file from the route.
+3. **Read the levels line first**: how many routes are public, authed, owner-scoped and role-gated.
+4. **Print the matrix** and look for rows whose level is lower than the data deserves.
+5. **Fix the critical findings in order** — identity on the router, ownership in the query, role as a second check.
+6. **Add `--strict` to CI**, so the next unguarded route fails the build instead of reaching production.
+
+### Install it
+
+The fastest way is to let your agent do it. Paste this:
+
+```
+Install gatescope for me by reading
+https://raw.githubusercontent.com/NHTanvir/gatescope/master/llms.txt
+```
+
+Or place it yourself:
+
+```bash
+git clone https://github.com/NHTanvir/gatescope ~/.claude/skills/gatescope
+```
+
+Claude Code can add it as a plugin instead:
+
+```
+/plugin marketplace add NHTanvir/gatescope
+```
+
+It is an agent skill — a `SKILL.md` plus three Python scripts — so it works in Claude Code, Cursor, Codex, OpenClaw and anything else that reads a `SKILL.md`. You do not invoke it by name afterwards. Asking your agent who can reach an endpoint, or asking it to check the routes it just added, is enough.
+
+### Run it
+
+```bash
+# the audit
+python3 scripts/audit.py .
+
+# the matrix, ready to paste into a README or a pull request
+python3 scripts/render.py . --matrix
+
+# one self-contained HTML file: matrix, findings and fixes
+python3 scripts/render.py . --out=access-review.html
+```
+
+There is no config file and nothing to tell it about your stack. It is plain Python 3.9+ with **no dependencies**, it reads files, and it never sends a request to the application — so pointing it at production code is not a scan of production. Nothing leaves your machine.
+
+### What it reads
+
+| Framework | Routes from | Guards from |
+|---|---|---|
+| Express-style routers | `app.get`, `router.post`, … | inline middleware, `app.use`, the mount in another file |
+| Next.js App Router | `app/**/route.ts` exports | `auth()` or `getServerSession()` in the handler |
+| Next.js server actions | exported functions in a `"use server"` file | the identity check inside the action |
+| FastAPI | `@app.get`, `@router.post` | decorators and `Depends(...)` |
+| Flask | `@app.route(..., methods=[…])` | decorators such as `@login_required` |
+| Laravel | `Route::get`, `Route::post`, … | `->middleware('auth')` on the route |
+
+Express and Next.js are where chain resolution goes deepest. The Python and PHP parsers find the routes and the guards declared directly on them.
+
+## How gatescope resolves a guard chain
+
+This is the part worth understanding, because it is what makes the output checkable instead of a guess. Take the admin router from the example. In `src/server.ts`:
+
+```ts
+app.use("/api/admin", requireAuth);   // line 11
+
+app.use("/api/projects", projects);
+app.use("/api/admin", admin);
+```
+
+And in `src/routes/admin.ts`:
+
+```ts
+router.get("/users", async (req, res) => {
+  const users = await db.user.findMany();
+  res.json(users);
+});
+```
+
+Read `admin.ts` alone and `GET /users` has no guard. Read `server.ts` alone and there is no such route. The route that actually exists is `GET /api/admin/users`, and its chain is `requireAuth`, declared eleven lines into a different file.
+
+gatescope follows the import, joins the mount prefix to the path, and credits a guard declared at the mount to every route inside it. The finding carries that chain as its evidence:
+
+```
+  GET /api/admin/users
+    GET /api/admin/users is an admin path and the chain is authed:
+    requireAuth (mounted-middleware server.ts:11).
+```
+
+Then it reads the handler body, for the things a middleware list cannot tell you:
+
+- **Is identity enforced?** A session that is read and then ignored is not a guard. The handler has to do something about it: return a 401, throw, redirect.
+- **Is the query scoped to the caller?** A `where` that includes a value from the session is what makes a route `owner` instead of `authed`.
+- **Where does the subject's id come from?** `where: { id: userId }` with a `userId` the caller supplied is the bug, not the fix.
+- **What reaches the write?** A request body spread into a create, a role read from the request, and a write that happens before the first identity check are each their own finding.
+
+One attribution rule is strict on purpose. An Express `app.use` mount is never credited to a Next.js route handler, because it does not protect one. Crediting a guard that does not apply is the worst mistake a tool like this can make: it hides a real hole.
+
+## Reading the report
+
+```
+  ACCESS AUDIT   examples/project-api/before
+  13 routes · express, next · 5 files
+
+  7 public · 4 authed · 2 owner · 0 role
+
+  critical    8  █████████████████████████
+  high        9  ████████████████████████████
+  medium      3  █████████
+
+  20 findings across 13 routes
+```
+
+The second line of numbers is the one to read first. Seven public routes, and zero behind a role, on an API with an admin panel.
+
+Then the findings, worst first:
+
+```
+  DELETE /api/projects/:id
+    DELETE /api/projects/:id changes data and no guard was found on it.
+    unauthenticated_mutation — The guard chain resolved to nothing: no
+    middleware on the route, none on the router it is mounted in, and no
+    identity check inside the handler. Anyone who can reach the host can
+    call it. Mutating endpoints are the ones where this is not a
+    disclosure bug but a write.
+      src/routes/projects.ts:27  DELETE /api/projects/:id
+```
+
+Every finding has the same four parts: the route, what was found, why it matters, and the file and line the claim rests on. Other shapes for when you want something other than a terminal:
+
+```bash
+python3 scripts/audit.py . --markdown   # paste into a PR comment
+python3 scripts/audit.py . --json       # for your own tooling
+python3 scripts/audit.py . --strict     # exit 1 on any critical, for CI
+python3 scripts/routes.py .             # just the resolved routes
+```
+
+## The six findings to fix first
+
+### 1. A route that writes and has no guard
+
+```ts
+// No guard on this one at all.
+router.delete("/:id", async (req, res) => {
+  await db.project.delete({ where: { id: req.params.id } });
+  res.status(204).end();
+});
+```
+
+Three routes above it in the same file pass `requireAuth`. This one does not, and nothing about it looks unusual. On a read that is a disclosure. On a `DELETE` it is a write that anyone who can reach the host can make.
+
+The fix is not to add `requireAuth` to this handler. It is to stop guarding handlers one by one:
+
+```ts
+// Identity is the router's property, not each handler's,
+// so a new handler cannot be added without it.
+app.use("/api", requireAuth);
+```
+
+A per-handler guard is a list that has to stay complete. A router-level guard makes protected the default and the exception explicit.
+
+### 2. A server action that trusts whoever calls it
+
+```ts
+"use server";
+
+export async function deleteAccount(userId: string) {
+  await db.user.delete({ where: { id: userId } });
+}
+```
+
+This does not look like an endpoint, which is why it is the most commonly missed one in modern Next.js code. It is one. The [Next.js documentation](https://nextjs.org/docs/app/guides/data-security) is explicit: "By default, when a Server Action is created and exported, it is reachable via a direct POST request, not just through your application's UI." And: "A page-level authentication check does not extend to the Server Actions defined within it."
+
+gatescope lists each action as a route — `POST /#deleteAccount`, since an action has no path of its own — and this one earns two findings. It has no identity check, and it takes the subject's id from the caller. An id in the arguments is a request, not a claim:
+
+```ts
+export async function deleteAccount() {
+  const session = await auth();
+  if (!session?.user) throw new Error("unauthorised");
+
+  await db.user.delete({ where: { id: session.user.id } });
+}
+```
+
+The subject is the session user, and the parameter is gone.
+
+### 3. Logged in is not the same as allowed
+
+This is IDOR, or BOLA in OWASP's API vocabulary:
+
+```
+  PATCH /api/projects/:id
+    PATCH /api/projects/:id is authenticated but never ties id to the caller.
+    id_param_no_owner_check — Being logged in is not being the owner. The
+    handler looks the row up by the id in the URL, so any authenticated
+    user reaches any row by changing one number. This is the most common
+    serious bug in generated CRUD, because each handler looks correct on
+    its own.
+      src/routes/projects.ts:33  PATCH /api/projects/:id
+```
+
+The fix is to put the ownership condition inside the query, rather than in an `if` after the fetch:
+
+```ts
+const project = await db.project.findFirst({
+  where: { id: req.params.id, userId: req.user.id },
+});
+// 404 rather than 403: a 403 confirms the row exists.
+if (!project) return res.status(404).end();
+```
+
+Written that way, the check cannot be forgotten in a later refactor, because there is no separate check to forget.
+
+gatescope raises this as a finding when the route writes, or when the path names people or money — `/users`, `/billing`, `/invoices`. A plain read such as `GET /api/projects/:id` is deliberately left to the matrix, where it shows as ✓ instead of `own`. Plenty of resources are meant to be readable by every logged-in user, and a tool that calls each of those critical stops being read.
+
+### 4. An admin route behind only a login check
+
+`GET /api/admin/users` resolves to `authed`. Every logged-in user reaches it. The chain establishes who you are and then never asks what you are allowed to do; the admin surface is hidden in the UI instead, which protects the menu rather than the route.
+
+Identity and authority are two different questions, so they are two different middleware:
+
+```ts
+// Identity comes from the mount. Authority is asserted here.
+router.use(requireRole("admin"));
+```
+
+### 5. The check that runs after the write
+
+```ts
+router.patch("/:id", async (req, res) => {
+  await db.project.update({ where: { id: req.params.id }, data: req.body });
+  const session = await getServerSession(req);
+  if (!session) return res.status(401).end();
+  res.json({ ok: true });
+});
+```
+
+There is an identity check in this handler, and a reviewer scanning for one will find it. gatescope reads the order:
+
+```
+  PATCH /api/projects/:id
+    PATCH /api/projects/:id writes at line 34 and checks identity at line 35.
+```
+
+Returning 401 afterwards tells the caller they were not allowed to do the thing they just did. Every unauthorised request still changes the row; only the response differs.
+
+### 6. A request body spread into a write
+
+```ts
+const project = await db.project.create({
+  data: { ...req.body, userId: req.user.id, role: req.body.role },
+});
+```
+
+Whatever the client sends becomes the record. Fields the form never showed — `role`, `plan`, `ownerId`, `isVerified` — are writable by anyone who reads the schema, and the schema is usually in the same repository as the client. Parse the body into an explicit list instead:
+
+```ts
+const { name, description } = CreateProject.parse(req.body);
+const project = await db.project.create({
+  data: { name, description, userId: req.user.id },
+});
+```
+
+And never read a privilege from the request. If the client can send a role, the client can choose it.
+
+The remaining rules — a public read of sensitive data, sibling routes that disagree about their guard, a login route with no rate limit, a debug route left behind after an incident, a codebase with no identity guard anywhere, and guard names that have drifted apart — are documented with their rationale, fix and failure case in [`references/audit-rules.md`](https://github.com/NHTanvir/gatescope/blob/master/references/audit-rules.md). There are 14 in total.
+
+## The order to fix access control in
+
+The order matters, because some fixes make the others unnecessary:
+
+1. **Put identity on the router, not on each handler**, so the next handler cannot be added without it.
+2. **Put the ownership condition inside the query**, and return 404 rather than 403.
+3. **Put role checks on admin routers as a second, separate middleware.**
+4. **Replace body spreads with an explicit field list** before touching anything else, because mass assignment can re-introduce a privilege you already fixed elsewhere.
+5. **Never read a role, plan or permission from the request.** If one has to change, that is its own endpoint behind its own role gate.
+
+One caution: do not let an agent apply these blind. Adding `requireAuth` to a route that a mobile client calls unauthenticated is an outage. gatescope shows the finding and names the fix. The decision is yours.
+
+## From 20 findings to zero
+
+The repository ships the whole thing as a worked example. [`examples/project-api/before`](https://github.com/NHTanvir/gatescope/tree/master/examples/project-api) is five files of ordinary agent output, and it audits to **20 findings, 8 of them critical**.
+
+`after` is the same API with identity on the router, ownership in every query, a role check on the admin router and a session check in each server action. It audits to **0 findings**, and the matrix changes shape:
+
+| Route | anon | user | admin | guard chain |
+|---|---|---|---|---|
+| `POST /login` | ✓ | ✓ | ✓ | `—` |
+| `POST /#deleteAccount` | · | own | own | `—` |
+| `POST /#updatePlan` | · | own | own | `—` |
+| `GET /api/admin/users` | · | · | ✓ | `requireAuth → requireRole → admin` |
+| `POST /api/admin/users/:id/promote` | · | · | ✓ | `requireAuth → requireRole → admin` |
+| `GET /api/billing` | · | own | own | `—` |
+| `POST /api/billing` | · | own | own | `—` |
+| `GET /api/projects` | · | own | own | `requireAuth` |
+| `POST /api/projects` | · | own | own | `requireAuth` |
+| `DELETE /api/projects/:id` | · | own | own | `requireAuth` |
+| `GET /api/projects/:id` | · | own | own | `requireAuth` |
+| `PATCH /api/projects/:id` | · | own | own | `requireAuth` |
+
+There is an `admin` column now, because there is finally a role to put in it. The only route an anonymous caller reaches is the login endpoint, and that one is rate-limited. Nine routes are owner-scoped, two are role-gated, and the debug route is gone.
+
+The two directories are worth reading side by side. The endpoints do not change. What changes is that the second one decides, in one place, who gets through.
+
+## Failing CI on an unguarded route
+
+An audit you have to remember to run stops happening in week three:
+
+```bash
+python3 scripts/audit.py . --strict
+```
+
+That exits 1 on any critical finding. Put it in a pipeline step and the next handler that writes with no guard stops being something a reviewer has to catch by eye.
+
+## What a static access control audit cannot see
+
+gatescope says "no guard found". It never says "vulnerable", and that distinction is the whole design. An evidence-shaped claim survives being wrong. A verdict does not — one bad "vulnerable" and nobody believes the other nineteen findings.
+
+The limits, stated rather than hidden:
+
+- **A gateway, reverse proxy, WAF or platform policy is invisible to it.** A route protected only there reads as `public`. Check the cited line before acting.
+- **Next.js middleware is not resolved.** A route guarded only in `middleware.ts` or `proxy.ts` also reads as `public`. That is still worth knowing: after the middleware bypass disclosed as CVE-2025-29927 in March 2025, Vercel's [postmortem](https://vercel.com/blog/postmortem-on-next-js-middleware-bypass) warned against using middleware as the sole method of protecting routes.
+- **Express chains are followed through the imports and mounts it can see.** A router assembled dynamically, or mounted from an array, is not followed.
+- **Ownership is only read from the handler in front of it.** A check delegated to a helper such as `assertOwner(row, user)`, or one inside a handler function defined in another file, is not followed. That route reads as `authed`.
+- **It never sends a request.** It can tell you a guard is there. It cannot confirm that the guard works.
+
+## How does this compare with other ways of testing access control?
+
+| Approach | Needs a running app | Needs an account per role | Covers every route | What you get |
+|---|---|---|---|---|
+| Reading the code by hand | No | No | Only the files you open | Whatever you noticed |
+| Asking an LLM to review security | No | No | Only the files it is shown | Prose, with no route table |
+| Proxy tools and DAST, such as Burp's AuthMatrix | Yes | Yes | Only the requests you exercise | Proof that a request got through |
+| gatescope | No | No | Every route it can parse | The matrix, each cell cited to a line |
+
+These are not competitors. Static resolution tells you where nothing is checked. A dynamic test proves that a check holds. Run the first on every pull request and the second before a release.
+
+## Questions people ask
+
+### What is broken access control in simple terms?
+
+It is when an application lets a caller do something they should not be allowed to do — read another user's record, change it, or use an admin function — because the check that should stop them is missing or wrong. OWASP ranks it first in its Top 10:2025 and found some form of it in every application it tested.
+
+### What is the difference between IDOR and BOLA?
+
+They describe the same flaw from two sides. IDOR, insecure direct object reference, names the tamperable id: change `/invoices/41` to `/invoices/42` and receive someone else's invoice. BOLA, broken object level authorization, is the OWASP API Security name for the missing check behind it. The fix is the same: verify on the server that this caller may act on this object.
+
+### Are Next.js server actions public endpoints?
+
+Yes. The Next.js documentation says an exported server action is reachable through a direct POST request, not only through your application's UI, and that a page-level authentication check does not extend to the actions defined within it. Each action has to verify the session, and the caller's right to the specific record, inside its own body.
+
+### How do I find API routes that are missing authentication?
+
+List every route, including server actions and routers mounted from other files, then resolve the middleware in front of each one. A route is unprotected when nothing in that chain establishes who the caller is: no router-level middleware, no inline guard and no session check in the handler. gatescope does this statically and prints each route with the chain it resolved.
+
+### Can a static analysis tool prove that an endpoint is vulnerable?
+
+No. A static tool sees source code. It does not see the gateway, proxy or platform policy in front of it. That is why gatescope reports that no guard was found, with the file and line it read, and never reports a route as vulnerable. The claim can be checked in one click, and a dynamic test is what proves whether a request really gets through.
+
+### Does gatescope run my application or send any requests?
+
+No. It reads source files and never makes a request to the application, so nothing leaves your machine and it is safe to point at production code. It is plain Python 3.9 or newer with no dependencies.
+
+### Will it see authentication enforced in Next.js middleware or an API gateway?
+
+No. A guard enforced in a layer it does not parse — Next.js middleware, an API gateway, a reverse proxy — is invisible to it, so those routes read as public. Every finding cites the line it read so you can check. A handler with no check of its own is still worth knowing about, because middleware should not be the only thing protecting a route.
+
+### Why return 404 instead of 403 when a record belongs to someone else?
+
+Because a 403 confirms that the record exists. If one id returns 403 and another returns 404, an attacker can map which ids are real. Putting the ownership condition inside the query makes a record that is not yours indistinguishable from one that does not exist.
+
+### Does it only work with Claude Code?
+
+No. It is a standard agent skill, so it works in Claude Code, Cursor, Codex, OpenClaw and anything else that reads a `SKILL.md`. It also runs with no agent at all, from a terminal or a CI job.
+
+## Related
+
+gatescope is the third tool in a set. [statescope](/audit-state-machine-ai-generated-code/) does the same job for the state machine your code implements — the lifecycle nobody wrote down — and [schemascope](/audit-ai-generated-database-schema/) does it for the database schema underneath both.
+
+## Get it
+
+[github.com/NHTanvir/gatescope](https://github.com/NHTanvir/gatescope) — MIT licensed, no dependencies, 60 tests.
+
+If it reports a route as unguarded and the guard exists, that is the most useful issue you can open: the smallest route that triggers it, and where the guard actually lives. It will be treated as a bug rather than a preference.

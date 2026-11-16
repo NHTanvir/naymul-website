@@ -715,6 +715,15 @@ body.admin-bar .nt-toc { top: 142px; }
     font-weight: 700;
     background: rgba(255, 255, 255, 0.02);
 }
+/* On a phone a wide table scrolls inside its own box. Left as a plain table it
+   grows past the column and the page clips the columns on the right. */
+@media (max-width: 760px) {
+    .nt-single__content table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
 
 .nt-single__tags {
     margin-top: 48px;
