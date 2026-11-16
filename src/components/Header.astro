@@ -161,3 +161,11 @@ const isBlog = Astro.props.section === 'blog' || path.startsWith('/blogs') || pa
     }
   }
 </style>
+
+<script>
+  // The header darkens once the page has scrolled. The homepage script used to be the
+  // only thing setting this, so blog pages kept the see-through header over their text.
+  const mark = () => document.body.classList.toggle('mp-scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', mark, { passive: true });
+  mark();
+</script>
