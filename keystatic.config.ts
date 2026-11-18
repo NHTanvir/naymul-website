@@ -51,6 +51,20 @@ export default config({
         }),
         cover: fields.image({ label: 'Cover image', ...imageDir }),
         coverAlt: fields.text({ label: 'Cover image description (alt text)' }),
+        software: fields.object(
+          {
+            name: fields.text({ label: 'Name' }),
+            repository: fields.url({ label: 'Source repository URL' }),
+            description: fields.text({ label: 'One-line description', multiline: true }),
+            language: fields.text({ label: 'Programming language' }),
+            license: fields.text({ label: 'License (SPDX id, for example MIT)' }),
+          },
+          {
+            label: 'Software',
+            description:
+              'The open-source tool this post is about, if any. A name and a repository URL add SoftwareSourceCode structured data.',
+          },
+        ),
         draft: fields.checkbox({
           label: 'Draft',
           description: 'Drafts are hidden from the live site.',

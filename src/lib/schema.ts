@@ -63,6 +63,32 @@ export function faqSchema(post: Post, permalink: string) {
   };
 }
 
+/** The tool a post is about, when its front matter gives at least a name and a repository. */
+function softwareOf(post: Post) {
+  const software = post.data.software;
+  return software?.name && software.repository ? software : null;
+}
+
+/**
+ * SoftwareSourceCode for the open-source tool a post is about. The BlogPosting
+ * points at it with `about`, so the article and the repository are one entity.
+ */
+export function softwareSchema(post: Post, permalink: string, base: string) {
+  const software = softwareOf(post);
+  if (!software) return null;
+  return {
+    '@type': 'SoftwareSourceCode',
+    '@id': `${permalink}#software`,
+    name: software.name,
+    ...(software.description ? { description: software.description } : {}),
+    url: software.repository,
+    codeRepository: software.repository,
+    ...(software.language ? { programmingLanguage: software.language } : {}),
+    ...(software.license ? { license: `https://spdx.org/licenses/${software.license}.html` } : {}),
+    author: { '@id': `${base}#person` },
+  };
+}
+
 export function blogPostingSchema(post: Post, permalink: string, base: string, imageUrl?: string) {
   const { title, publishedDate, category, tags } = post.data;
   return {
@@ -83,6 +109,7 @@ export function blogPostingSchema(post: Post, permalink: string, base: string, i
     keywords: tags.join(', '),
     author: { '@id': `${base}#person` },
     publisher: { '@id': `${base}#person` },
+    ...(softwareOf(post) ? { about: { '@id': `${permalink}#software` } } : {}),
     ...(imageUrl
       ? { image: { '@type': 'ImageObject', url: imageUrl, width: 1200, height: 630 } }
       : {}),

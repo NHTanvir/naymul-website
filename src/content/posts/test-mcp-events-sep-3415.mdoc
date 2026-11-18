@@ -1,0 +1,418 @@
+---
+title: "MCP Events (SEP-3415): How to Test Your Server"
+excerpt: >-
+  What MCP Events (SEP-3415) is, how poll, push and webhook delivery work, and
+  how to test your MCP server locally, in CI and against ChatGPT's dialect.
+publishedDate: 2026-11-18
+category: AI Agents
+tags:
+  - MCP Events
+  - Model Context Protocol
+  - Webhooks
+  - ChatGPT
+  - AI Agents
+  - Developer Tools
+cover: ../../assets/images/posts/test-mcp-events-sep-3415.png
+coverAlt: >-
+  A dark card titled "Do your MCP Events reach every client?". A box reading
+  "webhook-id ≠ eventId" points with a red dashed arrow at a box reading
+  "Vercel AI SDK · TanStack AI", labelled "HTTP 400: both expect webhook-id =
+  eventId, which SEP-3415 forbids", above the line "35 rules · poll, push,
+  webhooks · SEP-3415 and ChatGPT profiles".
+software:
+  name: Hookbench
+  repository: https://github.com/NHTanvir/hookbench
+  description: >-
+    A test bench and mock client for MCP Events (SEP-3415): a conformance
+    check, a live event inspector, a reference server and a GitHub Action.
+  language: TypeScript
+  license: MIT
+draft: false
+---
+On November 11, 2026, the Model Context Protocol's Core Maintainers voted to accept SEP-3415, the proposal that adds events to MCP. ChatGPT got there first: OpenAI announced support for the proposed MCP Events specification at DevDay on September 29, six days before SEP-3415 was opened as a pull request. So anyone building an MCP server with events today has two descriptions of the same protocol to follow, and they disagree.
+
+To see how far apart they are, I pointed one conformance check at one reference server, built once to each dialect. Built to SEP-3415, the server passed the SEP-3415 check and failed three of ChatGPT's requirements. Switched to ChatGPT's dialect, it passed ChatGPT's check and failed seven SEP-3415 MUSTs. Two of those conflicts can't be fixed in a single server, because the two documents ask for opposite things.
+
+**The short answer:** MCP Events is the Model Context Protocol extension, defined in SEP-3415 as `io.modelcontextprotocol/events`, that lets an MCP server tell a client when something happens instead of waiting to be asked. The server lists its event types with `events/list`, and a client receives each occurrence in one of three ways: by polling with `events/poll`, on a push stream with `events/stream`, or as signed webhooks after `events/subscribe`. To test a server against the spec, run `npx github:NHTanvir/hookbench check <your-mcp-url>`.
+
+That command is [Hookbench](https://github.com/NHTanvir/hookbench), an open-source test bench I built for MCP Events. It plays the client: it subscribes to your server the way ChatGPT or an agent SDK would, shows every delivered event in a live inspector, and grades the server against 35 rules, with a fix for every failure. It runs on your machine, has no runtime dependencies, and also ships as a GitHub Action. This post covers what MCP Events is, how its delivery modes work, how to test a server locally and in CI, and where ChatGPT parts ways with the spec.
+
+**Key takeaways**
+
+- SEP-3415 is accepted but not merged, and no official MCP SDK ships it yet. It becomes Final only after a reference implementation lands in an official SDK.
+- MCP Events has five methods and three delivery modes. Webhooks need an authenticated caller, an `https` callback, and a `whsec_` secret that the client generates.
+- ChatGPT speaks an earlier dialect: a different capability key, a different error code for a failed callback, and a `webhook-id` equal to the `eventId`, which SEP-3415 forbids.
+- The Vercel AI SDK and TanStack AI reject SEP-style webhook ids with HTTP 400, and the Vercel AI SDK can't see a server that advertises Events only where the SEP puts it.
+- The signing bug to rule out first: keying the HMAC with the literal `whsec_` string instead of the bytes it encodes.
+
+## What is MCP Events?
+
+MCP Events is an extension to the Model Context Protocol that turns an MCP server into a source of events. MCP is request-driven: a model calls a tool or reads a resource, and the server answers. If an agent wants to know when a support ticket is opened, it has to keep asking. The notifications MCP already had don't fill that gap. `notifications/resources/updated` says only that a URI changed, carries no payload, and reaches only a client that happens to be connected.
+
+With MCP Events, a server declares event types such as `ticket.created` or `build.finished`, each with a JSON Schema for subscription arguments and another for the event's data. A client subscribes with arguments, such as only urgent tickets or only failed builds on `main`, and the server delivers every matching occurrence, with a cursor so a client that was away can resume where it left off. OpenAI's [DevDay 2026 recap](https://openai.com/index/devday-2026-recap/) put the use case simply: plugins can "start automations when something happens in a connected app."
+
+How it got here:
+
+| Date (2026) | What happened |
+|---|---|
+| February 19 | The [design sketch](https://github.com/modelcontextprotocol/ext-events/blob/main/docs/design-sketch-proposal.md) that the SEP grew from |
+| March 24 | The Triggers and Events Working Group is [chartered](https://modelcontextprotocol.io/community/triggers-events/charter) |
+| July 28 | MCP revision [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28): stateless requests and `server/discover`, which the extension relies on |
+| September 29 | OpenAI DevDay: ChatGPT adds support for the proposed MCP Events specification |
+| October 5 | [SEP-3415](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/3415) is opened |
+| October 8 | Error codes move from the -32011 to -32015 range to -32023 to -32027 |
+| October 16 | The group becomes the Tasks and Events Working Group |
+| November 11 | The Core Maintainers vote SEP-3415 Accepted |
+
+Accepted isn't final. The pull request is still open, details can change before it merges, and the SEP's own reference implementation section says the official SDK implementation is outstanding. The official TypeScript SDK has no Events code yet, and the Python SDK has an [open pull request](https://github.com/modelcontextprotocol/python-sdk/pull/3822).
+
+## How do MCP Events work?
+
+A server advertises the extension in its `server/discover` result, under `capabilities.extensions["io.modelcontextprotocol/events"]`, and adds five methods:
+
+| Method | What it does | Delivery mode |
+|---|---|---|
+| `events/list` | Lists event types, each with its delivery modes, an `inputSchema` for arguments and a `payloadSchema` for data | all |
+| `events/poll` | Returns the events after a cursor; `cursor: null` starts from now | poll |
+| `events/stream` | Opens a long-lived stream of `notifications/events/*` messages | push |
+| `events/subscribe` | Registers or refreshes a webhook, with a callback URL and a secret | webhook |
+| `events/unsubscribe` | Removes a webhook subscription | webhook |
+
+Every mode delivers the same unit, an `EventOccurrence`. This one came from Hookbench's reference server:
+
+```json
+{
+  "eventId": "evt_d7328ed8f0ac49ac9612",
+  "name": "ticket.created",
+  "timestamp": "2026-11-18T12:22:48.220Z",
+  "data": {
+    "ticketId": "T-1008",
+    "title": "CSV export drops the last row",
+    "priority": "low",
+    "project": "api",
+    "url": "https://tickets.example.com/T-1008"
+  },
+  "cursor": "c_1fbc0b3c.8"
+}
+```
+
+The three modes differ in who keeps state and who has to be reachable:
+
+| | Poll | Push | Webhook |
+|---|---|---|---|
+| The client starts it with | `events/poll` and `cursor: null` | `events/stream` | `events/subscribe`, a callback URL and a `whsec_` secret |
+| Events arrive | in each poll result | as `notifications/events/event` on the open stream | as signed HTTP POSTs to the callback |
+| Kept alive by | polling again after `nextPollMs` | server heartbeats; the client reconnects with its cursor after three silent intervals | subscribing again before `refreshBefore` |
+| Suits | serverless servers, clients behind NAT | local agents, stdio servers | remote servers, clients that go offline |
+
+Webhooks carry the most rules, because the server is about to POST data to a URL that a client handed it:
+
+- **The caller must be authenticated.** An anonymous `events/subscribe` gets `Forbidden` (-32024), so a server without auth can offer poll and push but not webhooks.
+- **The callback must be `https`**, and a server should refuse loopback and private addresses.
+- **The client supplies the secret:** `whsec_` followed by the base64 of 24 to 64 random bytes.
+- **The endpoint is verified before the first delivery**, typically with a signed challenge that it must echo back.
+- **Every delivery is signed** the [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md) way, with `webhook-id`, `webhook-timestamp` and `webhook-signature` headers, plus `X-MCP-Subscription-Id`.
+- **Subscriptions have a lifetime.** The server grants a `refreshBefore` time, and the client calls `events/subscribe` again before it passes.
+
+## How do I test MCP Events locally?
+
+You need a client that subscribes and a way to see what arrives. Hookbench is both: a mock MCP Events client with an inspector, plus a reference server for when you don't have one yet. It needs Node.js 18 or newer.
+
+### Run the MCP Events demo
+
+```sh
+npx github:NHTanvir/hookbench demo
+```
+
+The demo starts a reference MCP server on `127.0.0.1:4100`, subscribes to its three sample event types, one per delivery mode, fires events and shows them arriving. Nothing leaves your machine. A real run with `--once`, which fires one event per type and exits:
+
+```text
+$ npx github:NHTanvir/hookbench demo --once
+hookbench demo  MCP Events (SEP-3415), fully offline
+  reference server  http://127.0.0.1:4100/mcp  profile sep-3415, loopback callbacks allowed for the demo
+  ticket.created    webhook signed Standard Webhooks POSTs to the local receiver
+  build.finished    poll    events/poll every nextPollMs
+  alert.fired       push    notifications on a long-lived events/stream
+connected  http://127.0.0.1:4100/mcp  hookbench-reference 0.1.0 · protocol 2026-07-28 · capability extensions · profile sep-3415
+events/list: 3 event type(s)
+  ticket.created     poll push webhook    Fires when a support ticket is opened.
+  build.finished     poll push            Fires when a CI build completes.
+  alert.fired        push webhook         Fires when a monitoring alert triggers. Emit-only: no replay, cursor is null.
+18:18:18  build.finished   poll     active  every 1500 ms
+18:18:18  alert.fired      push     active  id 6, heartbeat 5000 ms
+18:18:18  ticket.created   webhook  verification challenge answered
+18:18:18  ticket.created   webhook  active  id sub_876d358342bc8f02, refresh before 18:19:18
+18:18:18  ticket.created   webhook  evt_a31605f09278439a9ae6  signed ✓  {"ticketId":"T-1001","title":"Checkout returns a 500 for EU cards","priority":"normal","project":"web","url":…
+18:18:18  alert.fired      push     evt_c3ab45719181476f88e0    {"alertId":"A-700","severity":"P2","service":"payments","summary":"payments p99 latency above 2 s for 5 minut…
+18:18:20  build.finished   poll     evt_d857ce73829b4eafabde    {"buildId":"b-4800","branch":"main","status":"passed","durationMs":61000}
+
+demo passed  3/3 event types delivered (webhook signature verified), no protocol problems
+18:18:20  ticket.created   webhook  closed  id sub_876d358342bc8f02, refresh before 18:19:18, unsubscribed
+18:18:20  build.finished   poll     closed  every 1500 ms, stopped polling
+18:18:20  alert.fired      push     closed  id 6, heartbeat 5000 ms, stream closed
+```
+
+Without `--once`, the demo keeps firing events, and `http://127.0.0.1:4400` shows the same deliveries in the inspector's web view.
+
+### Connect a mock MCP Events client to your server
+
+```sh
+npx github:NHTanvir/hookbench connect http://localhost:3000/mcp \
+  --header "Authorization: Bearer $MCP_TOKEN"
+```
+
+Hookbench calls `server/discover`, falling back to the older `initialize` handshake for servers that need it. It then lists your event types, subscribes to each one and prints every delivery as it arrives. It picks webhook delivery when you give it a public callback URL, then push, then poll. To choose the mode and filter by arguments yourself:
+
+```sh
+npx github:NHTanvir/hookbench connect http://localhost:3000/mcp \
+  --header "Authorization: Bearer $MCP_TOKEN" \
+  --event incident.created:push \
+  --args 'incident.created={"severity":"P1"}'
+```
+
+On Ctrl+C it unsubscribes its webhooks and closes its streams, so your server doesn't keep delivering to a client that left.
+
+### Trigger a test event
+
+There is no `events/emit` method for a client to call. Events start inside your server, when the upstream thing happens. So make it happen: open the ticket, push the commit, or add a dev-only endpoint that emits a test event. Hookbench's check can POST `{"name": …, "data": …}` to that endpoint with `--trigger-url`, which turns on its delivery rules. On the reference server, `hookbench fire` does it for you:
+
+```text
+$ npx github:NHTanvir/hookbench fire ticket.created
+fired ticket.created evt_9482a82ca698485aa204  → push 1 stream(s) · webhook 0 subscription(s) · poll subscribers get it on their next poll
+```
+
+### Receive MCP webhooks on localhost
+
+A conformant server won't deliver to `http://127.0.0.1`: the callback must be `https`, and it should be a public address. Put a tunnel in front of Hookbench's receiver and hand the server the tunnel's URL:
+
+```sh
+cloudflared tunnel --url http://localhost:4300     # or: ngrok http 4300
+npx github:NHTanvir/hookbench connect http://localhost:3000/mcp \
+  --header "Authorization: Bearer $MCP_TOKEN" \
+  --callback-url https://your-tunnel.trycloudflare.com
+```
+
+The receiver answers the verification challenge and checks every signature. When one fails, it tells you which signing mistake produced it.
+
+## How do I check an MCP server against SEP-3415?
+
+```sh
+npx github:NHTanvir/hookbench check http://localhost:3000/mcp \
+  --header "Authorization: Bearer $MCP_TOKEN" \
+  --trigger-url http://localhost:3000/dev/emit
+```
+
+The check probes your server the way a client would and grades 35 rules, from discovery down to the bytes of each webhook delivery. The rules are deterministic, with no AI involved, so the same server always gets the same report. This is a real run against Hookbench's reference server, shortened:
+
+```text
+$ npx github:NHTanvir/hookbench check http://127.0.0.1:4100/mcp --header "Authorization: Bearer hookbench-dev" --allow-loopback
+hookbench check  http://127.0.0.1:4100/mcp  (profile sep-3415)
+server   hookbench-reference 0.1.0 · protocol 2026-07-28 · capability: extensions
+trigger  http://127.0.0.1:4100/hookbench/fire
+callback http://127.0.0.1:44307/hooks/YxZfz_zGomKg
+
+Discovery and capability
+  ✓ PASS  discover.responds            server/discover answers
+                                      protocol 2026-07-28, server hookbench-reference 0.1.0
+  ✓ PASS  discover.result-type         results carry resultType: "complete"
+                                      server/discover result has resultType: "complete"
+  ✓ PASS  capability.declared          Events is advertised in capabilities
+                                      capabilities.extensions["io.modelcontextprotocol/events"] = {}
+…
+Push delivery (events/stream)
+  ✓ PASS  stream.active                events/stream opens with notifications/events/active
+                                      notifications/events/active: cursor "c_1fbc0b3c.1", truncated false, heartbeatMs 1000
+…
+Webhook subscriptions (events/subscribe, events/unsubscribe)
+  ✓ PASS  subscribe.requires-auth      events/subscribe without a principal gets Forbidden
+                                      Forbidden (-32024): events/subscribe needs an authenticated principal
+  ✓ PASS  subscribe.rejects-http       an http:// callback gets InvalidParams
+                                      an http:// callback: InvalidParams (-32602): delivery.url must use https
+…
+Webhook deliveries
+  ✓ PASS  delivery.signature           the v1 HMAC signature verifies over the raw body
+                                      v1 HMAC-SHA256 verified with the subscription secret
+  ✓ PASS  delivery.webhook-id          webhook-id follows the profile's rule
+                                      webhook-id msg_gpgkalj4U9AWQT29Ll000mt1 is independent of eventId evt_04684dd6a63e4de1af09
+…
+35 rules: 33 pass · 0 fail · 0 warn · 1 skip · 1 info  (4.0 s)
+PASS no MUST requirement failed
+```
+
+What the 35 rules cover:
+
+| Group | The rules check that |
+|---|---|
+| Discovery | `server/discover` answers with `resultType`, and Events is advertised |
+| `events/list` | every event type has a name, delivery modes and both schemas, and `nextCursor` pages correctly |
+| Errors and headers | an unknown event gets `NotFound` (-32023), an unoffered mode `Unsupported` (-32026), bad arguments `InvalidParams` (-32602), and a wrong `Mcp-Name` header `400 HeaderMismatch` |
+| Poll | `cursor: null` starts from now, the cursor resumes, and results carry `truncated`, `hasMore` and `nextPollMs` |
+| Push | the stream opens with `notifications/events/active`, tags every message with the subscription id, and heartbeats when quiet |
+| Webhook subscriptions | anonymous calls get `Forbidden`, `http` callbacks and bad secrets get `InvalidParams`, the callback is verified first, TTLs are respected, subscribing twice is idempotent, and unsubscribing works |
+| Webhook deliveries | Standard Webhooks headers, a valid v1 signature over the raw body, the `webhook-id` rule, fresh timestamps, a well-formed `EventOccurrence`, and bodies within 256 KiB |
+
+The exit code is 0 when no MUST fails and 1 when one does, so the check can gate a pull request. `--strict` fails on SHOULD warnings too, `--format json` or `--format markdown` prints a report for machines, and `--output` saves one to a file. Each failure states what was wrong, how to fix it, and the SEP section it enforces.
+
+## Why does MCP webhook signature verification fail?
+
+Most often because the server keyed the HMAC with the wrong bytes. A `whsec_` secret is a prefix plus base64, and the HMAC key is the decoded bytes after the prefix, not the string you see. Reviewers of the [official conformance suite](https://github.com/modelcontextprotocol/conformance/pull/521) recorded a server making exactly this mistake. This is Hookbench's check against a server that does the same:
+
+```text
+  ✗ FAIL  delivery.signature           the v1 HMAC signature verifies over the raw body
+                                      no v1 signature matches the subscription secret: the sender used the literal "whsec_…" string as the HMAC key; decode the base64 after the prefix and use those bytes
+                                      https://github.com/pja-ant/modelcontextprotocol/blob/60b15c16f2e7265ea34ac51099dc5be62f734692/seps/3415-events-extension.md#webhook-security
+…
+35 rules: 32 pass · 1 fail · 0 warn · 1 skip · 1 info  (4.0 s)
+FAIL 1 MUST requirement(s) failed
+```
+
+The correct computation, in Node.js:
+
+```js
+import { createHmac } from "node:crypto";
+
+// The webhook-signature header for one delivery.
+function sign(secret, webhookId, timestamp, body) {
+  const key = Buffer.from(secret.slice("whsec_".length), "base64"); // the decoded bytes, not the string
+  const mac = createHmac("sha256", key).update(`${webhookId}.${timestamp}.${body}`).digest("base64");
+  return `v1,${mac}`;
+}
+```
+
+`timestamp` is the `webhook-timestamp` value in Unix seconds, and `body` is the exact string you send. Re-serializing the JSON after signing breaks the signature even when the content is identical. When a signature fails, Hookbench's receiver re-computes it with the common mistakes and names the one that matches:
+
+- the literal secret as the key
+- the base64 text as the key, without decoding it
+- hex output instead of base64
+- a re-serialized body
+- a timestamp in milliseconds
+- a missing `v1,` prefix
+- a signature over the `eventId` while the header carries a different `webhook-id`
+- the id or the timestamp left out of the signed content
+
+## Will ChatGPT accept an MCP server built to SEP-3415?
+
+Not as it stands. OpenAI's [guide to MCP Events in ChatGPT](https://developers.openai.com/plugins/build/mcp-events) matches the earlier design sketch on the details that matter here, and it differs from SEP-3415 in four places:
+
+| | SEP-3415 | ChatGPT |
+|---|---|---|
+| Where Events is advertised | `capabilities.extensions["io.modelcontextprotocol/events"]` | top-level `capabilities.events` |
+| The `webhook-id` header | random per message, and MUST NOT be derived from `eventId` | must equal `eventId` |
+| `CallbackEndpointError` code | -32027 | -32015 |
+| Delivery modes | poll, push and webhook | webhook only, with no `gap` or `terminated` messages |
+
+Two open-source clients take ChatGPT's side, and their source code shows it. The Vercel AI SDK (`@ai-sdk/mcp` 2.0.101) refuses `events/list`, `events/subscribe` and `events/unsubscribe` with "Server does not support events" unless the top-level `capabilities.events` key is set. It and TanStack AI (`@tanstack/ai-mcp` 1.2.0) both answer HTTP 400 when a delivery's `webhook-id` differs from its `eventId`, although TanStack AI otherwise follows the SEP.
+
+To measure the gap, I checked Hookbench's reference server in both dialects, under both profiles:
+
+| Reference server built to | Checked against SEP-3415 | Checked against ChatGPT's dialect |
+|---|---|---|
+| SEP-3415 | passes (33 pass, 0 fail) | fails 3: the capability key, -32027 instead of -32015, a `webhook-id` that differs from the `eventId` |
+| ChatGPT's dialect | fails 7: the capability key, the design sketch's old error codes in four places, the unsubscribe result, a `webhook-id` equal to the `eventId` | passes (23 pass, 0 fail) |
+
+The SEP-3415 server's failure under the ChatGPT profile reads:
+
+```text
+  ✗ FAIL  delivery.webhook-id          webhook-id follows the profile's rule
+                                      webhook-id msg_FHpF5FCUFWVSkVLL4NvRdspg differs from eventId evt_5a73907a8ede4a918c31; ChatGPT's guide requires them to match
+```
+
+Two of these can't be reconciled in one server: a `webhook-id` can't both equal and differ from the `eventId`, and a failed callback can't return two error codes. The capability key can be: advertising both keys is harmless, as Hookbench's interop note points out. For the rest, pick the dialect of the clients you ship to, and test with that profile:
+
+```sh
+npx github:NHTanvir/hookbench check http://localhost:3000/mcp --profile chatgpt \
+  --header "Authorization: Bearer $MCP_TOKEN"
+```
+
+Hookdeck's [MCP Events support survey](https://hookdeck.com/webhooks/guides/what-are-mcp-events) reports that, for now, servers send the `eventId` as the `webhook-id`. Whether that changes depends on the clients adopting the SEP's rule once it merges.
+
+## How do I test MCP Events in CI?
+
+Use the GitHub Action, listed on the Marketplace as [MCP Events Conformance Test (SEP-3415)](https://github.com/marketplace/actions/mcp-events-conformance-test-sep-3415). Add it after the step that starts your server:
+
+```yaml
+- name: MCP Events conformance test
+  uses: NHTanvir/hookbench@v0.1.0
+  with:
+    url: http://127.0.0.1:3000/mcp
+    headers: |
+      Authorization: Bearer ${{ secrets.MCP_TOKEN }}
+    trigger-url: http://127.0.0.1:3000/dev/emit
+```
+
+It fails the job when a MUST requirement breaks and writes the report to the job summary. Its outputs are `passed`, `failures`, `warnings`, `exit-code` and `report`, the path to the JSON report. Set `profile: chatgpt` to gate on ChatGPT's dialect instead. In any other CI system, run `npx --yes github:NHTanvir/hookbench check` with the same options, and `--summary` to append the Markdown report to a file.
+
+## Which clients and SDKs support MCP Events?
+
+Compiled on November 18, 2026, from each package's source where I could read it, and from Hookdeck's survey otherwise:
+
+| Runtime | Side | Delivery modes | Status | Dialect |
+|---|---|---|---|---|
+| ChatGPT | client | webhook | shipping since DevDay 2026 | ChatGPT |
+| Vercel AI SDK (`@ai-sdk/mcp`) | client | webhook | experimental | design sketch |
+| TanStack AI (`@tanstack/ai-mcp`) | client | webhook | experimental | SEP-3415, except `webhook-id` |
+| Mastra (`@mastra/mcp`) | client and server | client: poll, webhook; server: poll, push | experimental | SEP-3415 |
+| `mcp-handler` (Vercel Labs) | server | webhook | released; a pull request adds both dialects | design sketch |
+| Skybridge (Alpic) | server | webhook | released | design sketch and OpenAI's guide |
+| Official TypeScript SDK | both | none | no Events code in 1.32.2 | |
+| Official Python SDK | both | none yet | an open pull request | |
+| Claude and Claude Code | client | none | not supported; open feature request | |
+| MCP Inspector | tool | none | no Events support | |
+
+The official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) is the tool most people reach for to test an MCP server, and it can't subscribe to events yet. The official conformance suite for SEP-3415 is in review, as [#521](https://github.com/modelcontextprotocol/conformance/pull/521) for servers and [#541](https://github.com/modelcontextprotocol/conformance/pull/541) for clients. Once merged, it will be the authoritative grading harness. Hookbench is the bench next to it: a mock client and inspector to build against, a fast check with plain-language fixes, a ChatGPT profile, and a reference server to point your own client at.
+
+## Questions people ask
+
+### What is MCP Events?
+
+MCP Events is an extension to the Model Context Protocol, defined in SEP-3415 and identified as io.modelcontextprotocol/events. It lets an MCP server notify clients when something happens in an upstream system, such as a new ticket, a failed build or an incoming email. Clients receive events by polling, on a push stream, or as signed webhooks.
+
+### What is SEP-3415?
+
+SEP-3415 is the Specification Enhancement Proposal that defines MCP Events, numbered after its pull request in the modelcontextprotocol repository. The MCP Core Maintainers voted it Accepted on November 11, 2026. It is not merged yet, and it needs a reference implementation in an official SDK before it becomes Final.
+
+### Is MCP Events part of the MCP specification?
+
+It is an extension rather than part of the core protocol, and it is not final yet. A server opts in by advertising io.modelcontextprotocol/events in the capabilities of its server/discover result. It applies to protocol revision 2026-07-28 and later, because it relies on server/discover and per-request capabilities.
+
+### Does ChatGPT support MCP Events?
+
+Yes, for webhooks only. OpenAI announced support for the proposed MCP Events specification at DevDay on September 29, 2026. ChatGPT's dialect differs from SEP-3415: it reads a top-level capabilities.events key, expects webhook-id to equal eventId, and uses -32015 for a failed callback.
+
+### Does Claude support MCP Events?
+
+Not yet. Hookdeck's survey of MCP Events support lists Claude and Claude Code as not supporting it, with an open feature request.
+
+### How do I test MCP Events locally?
+
+Run npx github:NHTanvir/hookbench demo to see the whole loop with a bundled reference server. Then run npx github:NHTanvir/hookbench connect with your server's URL to subscribe to it as a mock client. Hookbench shows every delivery in the terminal and in a local web inspector, and verifies webhook signatures.
+
+### Can the MCP Inspector test MCP Events?
+
+Not yet. The official MCP Inspector had no MCP Events support as of November 2026. Hookbench covers that gap: it subscribes by poll, push or webhook, shows each delivered event, and checks the server against SEP-3415.
+
+### Why does my MCP webhook signature fail to verify?
+
+The usual cause is the HMAC key. Decode the base64 after the whsec_ prefix and use those bytes as the key. Sign the webhook-id, the webhook-timestamp and the raw body joined by dots, and send v1, followed by the base64 signature. Signing a re-serialized copy of the JSON also breaks verification.
+
+### Do MCP Events webhooks need https?
+
+Yes. SEP-3415 requires an https callback URL and tells servers to refuse loopback and private addresses. To receive webhooks on your laptop, put a tunnel such as cloudflared or ngrok in front of your receiver, or use a development server that allows loopback callbacks.
+
+### What error codes does MCP Events use?
+
+SEP-3415 uses -32023 for NotFound, -32024 for Forbidden, -32025 for ResourceExhausted, -32026 for Unsupported and -32027 for CallbackEndpointError, plus -32602 for InvalidParams. Before October 8, 2026, the design sketch used -32011 to -32015, and ChatGPT still uses -32015 for a failed callback.
+
+### Is there a GitHub Action for MCP Events?
+
+Yes. MCP Events Conformance Test (SEP-3415), on the GitHub Marketplace, runs Hookbench's conformance check in GitHub Actions with uses: NHTanvir/hookbench@v0.1.0 and your server's URL. It fails the job on any MUST failure and writes the report to the job summary.
+
+## Related
+
+Hookbench is the fifth open-source tool I've written up here. [Pollen](/poppy-json-personal-agent-protocol/) validates poppy.json, the file that tells personal agents how to work with a company, including which MCP servers they can use. The other three audit code that AI agents write: [gatescope](/find-broken-access-control-ai-generated-code/) maps every API route to the guards that protect it, [statescope](/audit-state-machine-ai-generated-code/) recovers the state machine your code implements, and [schemascope](/audit-ai-generated-database-schema/) reviews the database schema underneath.
+
+## Get it
+
+[github.com/NHTanvir/hookbench](https://github.com/NHTanvir/hookbench): MIT licensed, zero runtime dependencies, 136 tests, and a [GitHub Action](https://github.com/marketplace/actions/mcp-events-conformance-test-sep-3415) on the Marketplace. The SEP is still moving, so Hookbench pins the exact SEP text it checks against, and every failure links to it.
+
+If Hookbench flags something you're sure is correct, open an issue with the rule and the spec section. A false positive is a bug, and it gets fixed like one.

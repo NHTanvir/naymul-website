@@ -5,7 +5,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import avatar from '@/assets/me-hero.jpg';
 import { excerptOf, formatDate, getPosts, readingMinutes, slugify, type Post } from '@/lib/posts';
 import { site } from '@/data/site';
-import { blogPostingSchema, breadcrumbSchema, faqSchema, personSchema } from '@/lib/schema';
+import { blogPostingSchema, breadcrumbSchema, faqSchema, personSchema, softwareSchema } from '@/lib/schema';
 import '@/styles/home/base.css';
 import '@/styles/blog.css';
 
@@ -46,6 +46,7 @@ const jsonLd = [
     { name: title, url: permalink },
   ]),
   faqSchema(post, permalink),
+  softwareSchema(post, permalink, base),
 ].filter(Boolean) as Record<string, unknown>[];
 ---
 
