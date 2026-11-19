@@ -1,0 +1,254 @@
+---
+title: "Stateless MCP (2026-07-28): How to Migrate"
+excerpt: >-
+  What stateless MCP (2026-07-28) changed, why servers must reject Mcp-Method
+  and Mcp-Name header mismatches with -32020, and how to migrate and test.
+publishedDate: 2026-11-19
+category: AI Agents
+tags:
+  - Model Context Protocol
+  - Stateless MCP
+  - API Security
+  - TypeScript
+  - AI Agents
+  - Developer Tools
+cover: ../../assets/images/posts/migrate-mcp-server-stateless-2026-07-28.png
+coverAlt: >-
+  A dark card titled "Does your MCP server reject a header that lies?". A box
+  reading "Mcp-Name: get_weather" points with a red dashed arrow at a box
+  reading name: "delete_repo", labelled "HTTP 200: the gateway approved
+  one tool, the server ran another", above the line "33 rules · -32020
+  HeaderMismatch · 18/100 → 99/100 on the official SDK".
+software:
+  name: Statelint
+  repository: https://github.com/NHTanvir/statelint
+  description: >-
+    A conformance linter and migration tool for stateless MCP (2026-07-28): it
+    checks a running server's header/body agreement (-32020), handshake,
+    sessions and cache hints, scores it 0-100, and rewrites TypeScript SDK
+    servers to createMcpHandler.
+  language: TypeScript
+  license: MIT
+draft: false
+---
+On July 28, 2026, the Model Context Protocol stopped being a stateful protocol. The `initialize` handshake is gone, the `Mcp-Session-Id` header is gone, and every Streamable HTTP request now repeats its method and target in HTTP headers so that load balancers and gateways can route it without reading the body. That last change comes with a rule most write-ups skip: a server must reject any request whose headers disagree with its body.
+
+I wanted to know how far a typical server is from that. So I built three small servers on the official TypeScript SDK and graded each against the 2026-07-28 spec. The sessionful server from the SDK's v1 README scored **18 out of 100**. The same SDK's v1 "stateless mode", which many tutorials present as the stateless option, also scored **18**: it rejects protocol version 2026-07-28 outright. A server on the v2 SDK's `createMcpHandler` scored **99**. Then I ran the official upgrade codemod plus one more tool on the README server, and it went from 18 to 99 without me touching the code.
+
+**The short answer:** stateless MCP is the [2026-07-28 revision](https://modelcontextprotocol.io/specification/2026-07-28) of the Model Context Protocol, in which "all the information needed to process a request is contained in the request itself." There is no `initialize` and no session. Every request carries its protocol version and client capabilities in `_meta`, and every HTTP POST carries `MCP-Protocol-Version`, `Mcp-Method` and, for named targets, `Mcp-Name` headers that the server must check against the body, answering `400` with error `-32020` when they disagree. To check a server, run `npx github:NHTanvir/statelint check <your-mcp-url>`.
+
+That command is [Statelint](https://github.com/NHTanvir/statelint), an open-source conformance linter and migration tool I wrote for this revision. It sends at most 28 safe requests, grades the server on 33 rules taken from the spec text, and prints a 0-100 score with a fix for every failure. Its `migrate` command reads a 2025-era server's code and rewrites the entry point to the new stateless one when it can prove the rewrite safe. It has no runtime dependencies and also ships as a GitHub Action. This post covers what changed, why the header rule matters, how to migrate a TypeScript server, and how to keep it conformant in CI.
+
+**Key takeaways**
+
+- The 2026-07-28 revision removed `initialize` ([SEP-2575](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2575)) and protocol sessions ([SEP-2567](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2567)). Answering `initialize` for old clients is allowed; requiring it is not.
+- `Mcp-Method` and `Mcp-Name` must match the body, or the server answers `400 Bad Request` with `-32020` ([SEP-2243](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2243)). Without that check, a gateway can approve one tool while the server runs another.
+- Upgrading to the v2 TypeScript SDK does not switch the protocol. Serving 2026-07-28 takes `createMcpHandler`, and the official codemod leaves that step to you.
+- `createMcpHandler` validates no `Origin` or `Host` header, so a server that relied on its transport's DNS-rebinding protection loses it in the switch unless you add it back.
+- Discovery and list results now need `ttlMs` and `cacheScope`, and every result needs `resultType`.
+
+## What changed in stateless MCP?
+
+The [changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog) is long, but five changes decide whether a server works:
+
+| | 2025-11-25 and earlier | 2026-07-28 |
+|---|---|---|
+| First request | `initialize`, then `notifications/initialized` | any request; `server/discover` is optional for clients and required of servers |
+| Session | `Mcp-Session-Id`, ended with `DELETE` | none; state travels as handles in tool arguments |
+| Version and capabilities | negotiated once per session | in `params._meta` of every request |
+| HTTP endpoint | `POST` plus a `GET` event stream | `POST` only; `GET` and `DELETE` get `405` |
+| Routing headers | `MCP-Protocol-Version` after initialize | `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name`, checked against the body |
+
+Around them sit the smaller ones: results carry `resultType` ([SEP-2322](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2322)), servers ask clients for input by returning `resultType: "input_required"` instead of sending requests, change notifications move to a `subscriptions/listen` stream, `ping` and `logging/setLevel` are removed, a missing resource is `-32602` instead of `-32002`, and discovery and list results carry cache hints ([SEP-2549](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2549)).
+
+The point of all this is scale. In the [release announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28/), the maintainers put it plainly: "Any request can now land on any server instance behind a plain round-robin load balancer without needing shared storage." Nothing switched off on July 28, and older clients and servers keep working. But a 2026-07-28 client can only use your server if the server speaks 2026-07-28.
+
+## What is the -32020 HeaderMismatch error?
+
+`-32020` (`HeaderMismatch`, `HeaderMismatchError` in the schema) is the error a 2026-07-28 server returns, with HTTP `400`, when a request's `MCP-Protocol-Version`, `Mcp-Method`, `Mcp-Name` or `Mcp-Param-*` header is missing, malformed, or different from the value in the JSON-RPC body. The spec's [server validation](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation) section explains why it exists:
+
+> Servers that process the request body **MUST** reject requests where the values specified in the headers do not match the corresponding values in the request body. This prevents potential security vulnerabilities when different components in the network rely on different sources of truth (e.g., a load balancer routing on the header value while the MCP server executes based on the body value).
+
+Here is what that looks like when it goes wrong. A gateway allows `get_weather` and blocks `delete_repo`. A client sends `Mcp-Name: get_weather` in the header and `"name": "delete_repo"` in the body. The gateway reads the header and lets the request through. A server that never compares the two reads the body and deletes the repository. Akamai's [analysis of the revision](https://www.akamai.com/blog/security-research/new-mcp-specification-security-teams-must-prepare) names the attack class "protocol confusion (desync)": "Attackers can send conflicting values between the HTTP headers and the JSON-RPC request body." Gateways are already building on the headers. [agentgateway](https://agentgateway.dev/blog/2026-07-21-stateless-mcp-still-needs-mcp-native-dataplane/) rejects mismatches with `-32020`, and [Tyk Gateway 5.16](https://tyk.io/docs/developer-support/release-notes/gateway) checks them at ingress, before rate limits. The spec still puts the MUST on the server, because a request can reach it by another path.
+
+The correct answer is short:
+
+```json
+{ "jsonrpc": "2.0", "id": 1,
+  "error": { "code": -32020, "message": "Header mismatch: Mcp-Name header value 'foo' does not match body value 'bar'" } }
+```
+
+Two details catch implementations out. Header values are case-sensitive, so `Mcp-Method: TOOLS/LIST` does not match `tools/list`. And names that are not plain ASCII travel Base64-encoded as `=?base64?…?=`, which the server must decode before comparing. Also, `-32020` was `-32001` in the pre-release drafts, so a server built on a release-candidate SDK may still send the old number.
+
+Statelint tests the rule eight ways: `MCP-Protocol-Version` missing and contradicting `_meta`; `Mcp-Method` missing, contradicting, and differing only in case; `Mcp-Name` missing and contradicting on `tools/call`, `prompts/get` and `resources/read`; and a Base64-encoded name. Every probe names tools and resources that do not exist, so even a server that skips validation runs nothing. This is its report on a server that forgets the `Mcp-Name` comparison:
+
+```text
+$ statelint check http://127.0.0.1:3001/mcp
+  ✗ FAIL    name-header-match          MUST   tools/call with Mcp-Name: statelint_probe_header_value and a different
+            body target got HTTP 200, error -32602 "Unknown tool: statelint_probe_body_value"; … The server looked up the
+            body's target and ignored the header, so anything that authorizes or routes on Mcp-Name can be bypassed.
+            fix  Before dispatch, compare Mcp-Name (decoded if it uses =?base64?…?=) with params.name, or params.uri for
+                 resources/read, and answer HTTP 400 with -32020 on any difference. …
+            spec https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation
+Score 89/100  30 passed · 1 failed · 0 warnings · 2 skipped  (97 ms)
+Not conformant: 1 MUST rule failed (name-header-match).
+```
+
+## How do I check my MCP server against the 2026-07-28 spec?
+
+```sh
+npx github:NHTanvir/statelint check http://127.0.0.1:3000/mcp
+```
+
+For a server behind authentication, add `-H "Authorization: Bearer $TOKEN"`. Statelint forwards the header on every request and does no OAuth itself. It groups its 33 rules (23 MUST, 10 SHOULD) like this:
+
+| Group | Rules | What it checks |
+|---|---|---|
+| Stateless core | 6 | no `initialize` needed, `server/discover`, no `Mcp-Session-Id` issued or required, `GET` and `DELETE` answer `405` |
+| Header/body agreement | 10 | the eight probes above, `-32020` on every rejection, valid `x-mcp-header` annotations, no secrets mirrored into headers |
+| Versions and errors | 5 | `-32022` with the supported versions, `-32602` for incomplete `_meta`, `404` with `-32601` for unknown methods, error ids |
+| Results and caching | 4 | `resultType`, `ttlMs` and `cacheScope`, `serverInfo`, a stable `tools/list` order |
+| JSON and SSE | 7 | content types, one response per stream, no server-to-client requests, streams that close, `subscriptions/listen` |
+| Security | 1 | a foreign `Origin` is refused |
+
+MUST rules fail and SHOULD rules warn. Any failed MUST rule caps the score at 89, so 90 or more always means conformant. To see every failure first without a server of your own, `npx github:NHTanvir/statelint demo` runs offline: a compliant reference server scores 100, and 35 broken copies each fail exactly one rule.
+
+These are the scores I measured on the official TypeScript SDK:
+
+| Server | Score | What failed |
+|---|---|---|
+| v1 (1.32.2), sessionful, from the SDK's README | 18 | requires `initialize` and a session |
+| v1 (1.32.2), "stateless mode" (`sessionIdGenerator: undefined`) | 18 | answers 2026-07-28 with "Unsupported protocol version" |
+| v2 (2.4.0), `createMcpHandler` | 99 | one warning: it serves a request from any `Origin` |
+
+The v1 stateless result surprises people, so here is the line from the report:
+
+```text
+  ✗ FAIL    no-handshake               MUST   The server refused 2026-07-28 itself: HTTP 400, error -32000 "Bad Request:
+            Unsupported protocol version: 2026-07-28 (supported versions: 2025-11-25, 20…". It does not speak the
+            stateless revision yet.
+```
+
+`sessionIdGenerator: undefined` turns off sessions, but the v1 package still only speaks the 2025 protocol versions. Stateless in the 2025 sense is not the 2026-07-28 revision.
+
+## How do I migrate a TypeScript MCP server to stateless 2026-07-28?
+
+Two tools, in this order:
+
+```sh
+npx @modelcontextprotocol/codemod@latest v1-to-v2 .   # @modelcontextprotocol/sdk v1 → the v2 packages
+npx github:NHTanvir/statelint migrate . --diff         # what has to change to go stateless
+npx github:NHTanvir/statelint migrate . --write        # apply what can be rewritten safely
+npx github:NHTanvir/statelint check http://127.0.0.1:3000/mcp
+```
+
+The SDK's codemod renames imports and APIs: `StreamableHTTPServerTransport` becomes `NodeStreamableHTTPServerTransport`, `.tool()` becomes `registerTool`. By design it does not switch the protocol. The SDK's own [upgrade guide](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/migration/support-2026-07-28.md) says a server that "hands requests to a `*StreamableHTTPServerTransport` serves 2025-era clients only." The step that serves 2026-07-28 is replacing that transport with `createMcpHandler`, and that is what `statelint migrate` does. On the README server, after the official codemod, it produced this (abridged, +7 lines, −14):
+
+```diff
+-import { randomUUID } from 'node:crypto';
+-import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+-import { McpServer, isInitializeRequest } from "@modelcontextprotocol/server";
++import { toNodeHandler } from "@modelcontextprotocol/node";
++import { McpServer, createMcpHandler } from "@modelcontextprotocol/server";
+ …
+-const transports = {};
+-app.post('/mcp', async (req, res) => {
+-  const sessionId = req.headers['mcp-session-id'];
+-  … session lookup, isInitializeRequest, onsessioninitialized …
+-  await transport.handleRequest(req, res, req.body);
+-});
++const mcpHandler = createMcpHandler(() => getServer());
++const mcpNodeHandler = toNodeHandler(mcpHandler);
++app.all('/mcp', (req, res) => void mcpNodeHandler(req, res, req.body));
+```
+
+I started that server and checked it: **99/100**, conformant, with the same `Origin` warning as any `createMcpHandler` server. `createMcpHandler` builds a fresh server from your factory for every request, serves 2026-07-28, and keeps serving 2025-era clients statelessly from the same endpoint, so you do not have to drop old clients.
+
+The codemod is conservative on purpose. It rewrites a route only after proving the handler holds nothing but transport and session plumbing, and it refuses, with the reason and the line, when the route does anything else, when one server instance is shared across requests, or when tools still read `ctx.sessionId`. The first real run taught me that: the official codemod's output writes `if (…) transport = transports[sessionId];` without braces, and my first version refused it. That is fixed now, and the official codemod's output is part of the test suite.
+
+What it does not rewrite, it tells you to do:
+
+- **Put DNS-rebinding protection back.** If the old transport set `enableDnsRebindingProtection`, Statelint inserts a `TODO(statelint)` and keeps the finding open, because `createMcpHandler` checks neither `Host` nor `Origin`. With Express, `createMcpExpressApp()` from `@modelcontextprotocol/express` restores both.
+- **Replace per-session state with handles.** A shopping cart keyed on the session id has no session to hang off. The spec's [stateful tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools#stateful-tools) pattern returns a `basket_id` from one tool and takes it as an argument in the next.
+- **Turn elicitation and sampling into round trips.** Instead of `ctx.mcpReq.elicitInput()`, return `inputRequired({ … })` and read the answer when the client retries.
+- **Publish change notifications through the handler** with `mcpHandler.notify.toolsChanged()`, since a per-request server instance has nobody listening.
+- **Serve stdio with `serveStdio(() => buildServer())`**, which Statelint also rewrites when the server comes from a factory.
+
+Python and Go projects get findings too: `mcp` v1 pins (v2's `MCPServer` answers both protocol revisions from one endpoint), and `go-sdk` older than v1.7.0 or without `Stateless: true`. The [full migration guide](https://github.com/NHTanvir/statelint/blob/master/docs/migrate-to-2026-07-28.md) covers each step with code.
+
+## How do I keep an MCP server conformant in CI?
+
+Use the GitHub Action, listed on the Marketplace as [Stateless MCP Conformance Linter (2026-07-28)](https://github.com/marketplace/actions/stateless-mcp-conformance-linter-2026-07-28). Add it after the step that starts your server:
+
+```yaml
+- run: npm start &                 # your MCP server on port 3000
+- name: MCP 2026-07-28 conformance
+  uses: NHTanvir/statelint@v0.1.0
+  with:
+    url: http://127.0.0.1:3000/mcp
+    min-score: 90
+```
+
+It waits up to 30 seconds for the server, fails the job when a MUST rule breaks, annotates each failure with its fix, and writes the report to the job summary. Its outputs are `score`, `conformant`, `failures`, `warnings`, `exit-code` and `report`. In any other CI system, run `npx github:NHTanvir/statelint check <url> --wait 30s --min-score 90`.
+
+## How is Statelint different from the official conformance suite?
+
+The official [conformance suite](https://github.com/modelcontextprotocol/conformance) is the reference for SDK maintainers, and you can use both. Three things differ. In its frozen 2026-07-28 requirements, the server header-validation scenarios are `not_scored`, marked "pending against the reference fixture", so `-32020` enforcement is run but not graded. Several of its scenarios expect special fixture tools on the server. And its `Mcp-Name` mismatch case sends your server's first real tool with empty arguments, so a server that skips validation runs it. Statelint works on any server, never calls a real tool, and adds a score, a fix per failure and the migration step.
+
+Other checkers answer a different question, "is this server on the new protocol at all?" mcp-migration-check's [ecosystem snapshot](https://mcp-migration-check.alpaycelik.workers.dev/state-of-mcp) of August 23, 2026 found that 60.1% of 10,890 gradable public MCP servers still served only the legacy protocol. MCP Stateless Check tests that a server *accepts* the new headers. Statelint tests the part that keeps gateways and servers in agreement: that it *rejects* the ones that lie.
+
+## Questions people ask
+
+### What is stateless MCP?
+
+Stateless MCP is the 2026-07-28 revision of the Model Context Protocol, in which every request carries everything needed to process it. It removed the initialize handshake and the Mcp-Session-Id session, so any request can reach any server instance behind a plain load balancer. Each request carries its protocol version and client capabilities in _meta.
+
+### What changed in MCP 2026-07-28?
+
+The initialize handshake and protocol sessions were removed, server/discover was added, and Streamable HTTP requests must carry MCP-Protocol-Version, Mcp-Method and Mcp-Name headers that match the body. Results carry resultType, list results carry ttlMs and cacheScope, server-to-client requests became multi round-trip requests, and the GET stream became subscriptions/listen.
+
+### What is the -32020 error in MCP?
+
+-32020 is HeaderMismatch, the JSON-RPC error a 2026-07-28 server returns with HTTP 400 when the MCP-Protocol-Version, Mcp-Method, Mcp-Name or Mcp-Param headers are missing, malformed, or different from the JSON-RPC body. It stops a gateway that routes on headers and a server that runs the body from disagreeing about a request. It was -32001 in the drafts.
+
+### What are the Mcp-Method and Mcp-Name headers?
+
+They are HTTP request headers required by SEP-2243 in MCP 2026-07-28. Mcp-Method copies the JSON-RPC method on every request. Mcp-Name copies params.name for tools/call and prompts/get, or params.uri for resources/read. Gateways can route and authorize on them without parsing the body, and servers must reject values that do not match.
+
+### Is Mcp-Session-Id removed in MCP 2026-07-28?
+
+Yes. SEP-2567 removed protocol-level sessions and the Mcp-Session-Id header. A server that supports only 2026-07-28 should ignore an Mcp-Session-Id sent by an older client and never mint one. State that must span calls goes into explicit handles that tools return and take as arguments.
+
+### Does my MCP server still need the initialize handshake?
+
+No. A 2026-07-28 server must answer requests without any initialize. It may still answer initialize for older clients, which makes it a dual-era server, and the TypeScript SDK's createMcpHandler does this by default.
+
+### Is the TypeScript SDK's stateless mode the same as stateless MCP?
+
+No. In the v1 package, sessionIdGenerator: undefined turns off sessions, but the server still speaks only the 2025 protocol versions and rejects 2026-07-28 as unsupported. Serving 2026-07-28 needs the v2 packages and createMcpHandler. In my test, both v1 servers scored 18 out of 100 and the v2 server scored 99.
+
+### How do I migrate an MCP server to 2026-07-28?
+
+On the TypeScript SDK, run the official codemod npx @modelcontextprotocol/codemod@latest v1-to-v2 to move to the v2 packages, then replace the Streamable HTTP transport with createMcpHandler. Statelint's migrate command finds every place to change and rewrites the entry point when it can prove the rewrite is safe. Then check the running server with statelint check.
+
+### How do I test an MCP server for 2026-07-28 conformance?
+
+Run npx github:NHTanvir/statelint check with your server's URL. It grades 33 rules from the specification, including the -32020 header checks, and prints a 0-100 score with a fix for each failure. In GitHub Actions, use the Stateless MCP Conformance Linter (2026-07-28) Action.
+
+### Which MCP responses need ttlMs and cacheScope?
+
+Complete results of server/discover, tools/list, prompts/list, resources/list, resources/templates/list and resources/read. ttlMs is an integer number of milliseconds of 0 or more, and cacheScope is public or private. The TypeScript SDK sends ttlMs 0 and private unless you configure cacheHints.
+
+### Does createMcpHandler protect against DNS rebinding?
+
+No. The TypeScript SDK's createMcpHandler validates neither the Host nor the Origin header. Mount createMcpExpressApp, or localhostHostValidation and localhostOriginValidation, in front of it, especially when moving from a transport that had enableDnsRebindingProtection turned on.
+
+## Related
+
+Statelint is the second MCP tool I've written up here. [Hookbench](/test-mcp-events-sep-3415/) tests MCP Events (SEP-3415), the extension that rides on this revision's server/discover and per-request capabilities. [Pollen](/poppy-json-personal-agent-protocol/) validates poppy.json, which tells personal agents which MCP servers a company offers. The other three audit code that AI agents write: [gatescope](/find-broken-access-control-ai-generated-code/) maps API routes to their guards, [statescope](/audit-state-machine-ai-generated-code/) recovers the state machine your code implements, and [schemascope](/audit-ai-generated-database-schema/) reviews the database schema.
+
+## Get it
+
+[github.com/NHTanvir/statelint](https://github.com/NHTanvir/statelint): MIT licensed, zero runtime dependencies, 143 tests on Node 18 to 24, and a [GitHub Action](https://github.com/marketplace/actions/stateless-mcp-conformance-linter-2026-07-28) on the Marketplace. Every rule cites the spec section it enforces, and the research behind each one, with dates and quotations, is in the repository.
+
+If Statelint flags something you're sure is correct, open an issue with the rule and the spec line. A false positive is a bug, and it gets fixed like one.
