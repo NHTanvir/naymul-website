@@ -14,6 +14,12 @@ export function readingMinutes(post: Post): number {
   return Math.max(1, Math.ceil(words / 220));
 }
 
+/** When the post last changed: its updatedDate if that is later than publishedDate, otherwise publishedDate. */
+export function modifiedOf(post: Post): Date {
+  const { publishedDate, updatedDate } = post.data;
+  return updatedDate && updatedDate > publishedDate ? updatedDate : publishedDate;
+}
+
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 }
