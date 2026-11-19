@@ -1,22 +1,55 @@
 ---
-title: How to Audit the State Machine Your Coding Agent Actually Built
-excerpt: Your agent declared an OrderStatus enum and then wrote to it in ten places across four files. The enum constrains the column; nothing constrains the order. Here is how to find the state machine your code really implements — and the paths in it you never meant to allow.
+title: Generate a State Machine Diagram From Code
+excerpt: >-
+  Generate a state machine diagram from TypeScript, Python or PHP code, then
+  find every invalid state transition in it, cited to the line that allows it.
 publishedDate: 2026-11-15
+updatedDate: 2026-11-19
 category: Architecture
 tags:
   - State Machines
   - TypeScript
   - Prisma
+  - PostgreSQL
+  - Mermaid
   - Claude Code
   - Developer Tools
-cover: ../../assets/images/posts/audit-state-machine-ai-generated-code.png
+cover: ../../assets/images/posts/state-machine-diagram-from-code.png
 coverAlt: >-
-  A state diagram on a dark background: pending points to paid points to shipped
-  in green, and a red dashed arrow runs from refunded back to pending, labelled
-  "nothing stops this".
+  A dark card headed "State machine diagram from code" and "Draw the state
+  machine your code really implements". Three boxes, pending, paid and
+  shipped, are joined by green arrows, and a red dashed arrow runs from a
+  refunded box back to pending, labelled "nothing stops this · orders.ts:40",
+  above the line "7 states · 11 transitions · 12 findings, 7 critical".
+software:
+  name: statescope
+  repository: https://github.com/NHTanvir/statescope
+  description: >-
+    An open-source agent skill and CLI that infers the state machine a codebase
+    implements from its enums and status writes, draws it as a Mermaid state
+    diagram, and reports invalid transitions with the file and line that allow
+    each one.
+  language: Python
+  license: MIT
 draft: false
 ---
-Ask a coding agent to build an order flow and you get an enum in about four seconds:
+Ask a coding agent for an order flow and you get an enum in about four seconds, then a handler for every button. `markPaid` checks that the order is `pending`, which is correct. `ship` checks that it is `paid`, also correct. Then support wants a retry button, the warehouse wants to "unship" a parcel with the wrong label, and the admin panel needs a `setOrderStatus(id, status)` that writes whatever it is given.
+
+Every one of those functions is correct when you read it on its own. Together they implement a state machine nobody designed: `refunded` can go back to `pending`, `shipped` can go back to `paid`, and five separate writes can move an order into a new state from any state at all. Nobody can see that by reading the code, because **the machine is not written down anywhere**. It only exists as the sum of every line that assigns `status`.
+
+**The short answer:** to generate a state machine diagram from code, you have to recover the machine before you can draw it. The states come from the enum, union or `CHECK` constraint you already declared. The transitions come from the code: every read of the status field that guards a write to it is an edge, and every write that nothing guards is an edge from any state. [statescope](https://github.com/NHTanvir/statescope), an open-source tool I wrote, does this for TypeScript, JavaScript, Python, PHP, Prisma and SQL. Its `render.py --mermaid` prints a Mermaid `stateDiagram-v2` that GitHub renders natively, and `audit.py` lists every invalid state transition with the file and line that allows it.
+
+This post runs it on four files an agent could write in an afternoon. They produce the diagram below and 12 findings, 7 of them critical. Then it shows how to fix each kind of invalid transition, in Prisma and in plain SQL, so the next diagram comes back clean.
+
+![Order status state machine diagram generated from code: cancelled and refunded loop back to pending, shipped runs back to paid, and five states can be reached from any state.](../../assets/images/posts/order-status-state-machine-diagram.png)
+
+*The machine statescope recovered from the example's four files. Every arrow is an edge in its output. Green is guarded by a read of `status`, red should not exist, and orange is reachable from any state because nothing reads `status` first.*
+
+## What is an implicit state machine?
+
+An **implicit state machine** is a lifecycle that no single piece of code defines. There is no transition table, no `canTransition()` function and no diagram anyone keeps current. The machine is the combined effect of every place that writes a status column, and its transitions are whatever those writes happen to allow.
+
+Most applications have several: orders, subscriptions, invoices, support tickets, background jobs, KYC checks, moderation queues. Each one starts with an enum that looks like a design:
 
 ```prisma
 enum OrderStatus {
@@ -26,73 +59,111 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  DISPUTED
 }
 ```
 
-Then you get the handlers. `markPaid` checks that the order is `pending` first, which is correct. `ship` checks that it is `paid`, also correct. Twenty minutes later support asks for a retry button, so there is a `retryOrder`, and the warehouse printed the wrong label, so there is an `unship`, and the admin panel needs to fix a stuck row, so there is a `setOrderStatus(id, status)` that writes whatever you pass it.
+The enum constrains the values the column can hold. It says nothing about the order in which they can be reached. A `CHECK (status IN (...))` constraint stops a typo at the database and has no opinion on whether `refunded → pending` should be possible. So the lifecycle in the team's heads (pending, paid, shipped, delivered, with cancelled and refunded off to the side) and the one the code implements drift apart a handler at a time.
 
-Every one of those functions is correct when you read it on its own. Together they describe a machine in which `refunded` can go back to `pending`, `shipped` can go back to `paid`, and any state at all can become any other state through the admin endpoint.
+## Why do coding agents write invalid state transitions?
 
-Nobody can see that by reading the code, because **the machine is not written down anywhere**. It only exists as the sum of every place something assigns to `status`.
+Because an agent writes one handler at a time, and a state machine is a property of all of them together. A schema gets reviewed as one artifact. A lifecycle never does. The defects that follow are consistent enough to name:
 
-That is what I built [statescope](https://github.com/NHTanvir/statescope) for. Point it at a codebase, and it infers the state machine your code actually implements, draws it, and lists every illegal path with the line number that allows it. This post is how to use it.
+- **Each handler guards only the case in front of it.** `ship` checks for `paid` because the agent was asked to write `ship`. The functions written in other sessions had no reason to check anything.
+- **Convenience endpoints have no lifecycle.** A retry, a reset, an admin override: each one was written to close a single support ticket and stays in the code for good.
+- **Webhooks write whatever the event implies.** Stripe's [webhook documentation](https://docs.stripe.com/webhooks#event-ordering) says "Stripe doesn't guarantee the delivery of events in the order that they're generated", and warns that an endpoint can [receive the same event more than once](https://docs.stripe.com/webhooks#handle-duplicate-events). A `charge.succeeded` that arrives after `charge.refunded`, written with no guard, moves a refunded order back to `paid`.
+- **The read and the write are two round trips.** `findUnique`, then `update`, is a lost-update race the first time a webhook retries or a customer double-clicks.
 
-## Why generated state code fails in this particular way
+None of this fails code review, because each function looks fine in its own diff. It is also the category where AI-written code measurably does worse. CodeRabbit's [December 2025 analysis of 470 open-source pull requests](https://www.coderabbit.ai/blog/state-of-ai-vs-human-code-generation-report) found logic and correctness problems 75% more often in pull requests co-authored by AI than in human-only ones. It is a vendor's study, and its authors say they could not confirm authorship for every pull request, but the direction is hard to miss.
 
-A schema gets reviewed as one artifact. A state machine never does, because it is not an artifact — it is an emergent property of a dozen functions written at different times, often by an agent that was shown one of them at a time.
+## How to generate a state machine diagram from code
 
-So the defects are consistent:
+statescope needs Python 3.9 or newer and nothing else. There are no packages to install, no config file and no database connection.
 
-- **The enum constrains the column, not the call.** `status TEXT CHECK (status IN (...))` stops a typo reaching the database. It has nothing to say about whether `refunded → pending` should be possible.
-- **Each handler guards only the case in front of it.** The guard that exists is `if (order.status === 'paid')` in the function that needed it. The ten functions that did not think about it have no guard at all.
-- **Convenience endpoints have no concept of a lifecycle.** A `retry`, a `reset`, an admin override — written to unblock one support ticket, permanent from then on.
-- **The read and the write are two round trips.** `const order = await get(id)` then `update(...)` is a lost-update race the moment a webhook retries.
+### Step 1: Install statescope
 
-None of this fails code review. Each function looks fine. The system is wrong.
-
-## What statescope does
-
-It is an [agent skill](https://github.com/NHTanvir/statescope) — a `SKILL.md` plus three Python scripts — that does three things:
-
-1. **Infers the machine.** The state set comes from whatever you already declared. The transitions come from the code: a read of the state that dominates a write of the state *is* the edge between them.
-2. **Audits it.** 13 rules, ranked critical through low, each finding carrying the file and line that allows the path, plus a transition table that fixes it.
-3. **Draws it.** A Mermaid `stateDiagram-v2` that GitHub renders natively, or one self-contained HTML file with the diagram and every finding in it.
-
-Plain Python 3.9+ with **no dependencies**. Nothing leaves your machine. MIT licensed.
-
-## Installing statescope
-
-The fastest way is to let your agent do it. Paste this:
+If you use a coding agent (Claude Code, Cursor, Codex, OpenClaw, or anything else that reads a `SKILL.md`), paste this to it:
 
 ```
 Install statescope for me by reading
 https://raw.githubusercontent.com/NHTanvir/statescope/master/llms.txt
 ```
 
-Or place it yourself:
+Or clone it yourself:
 
 ```bash
-git clone https://github.com/NHTanvir/statescope \
-  ~/.claude/skills/statescope
+git clone https://github.com/NHTanvir/statescope ~/.claude/skills/statescope
 ```
 
-Claude Code can add it as a plugin instead:
+Claude Code can also add it as a plugin with `/plugin marketplace add NHTanvir/statescope`. Once it is installed you don't have to name it: asking your agent to draw the order lifecycle, or why an order is in an impossible state, is enough.
 
-```
-/plugin marketplace add NHTanvir/statescope
-```
+### Step 2: Run it on your code
 
-It works anywhere a `SKILL.md` is read — Claude Code, Cursor, Codex, OpenClaw. You do not invoke it by name afterwards. Asking your agent why an order is in an impossible state, or asking it to draw the lifecycle, is enough.
-
-## Running your first audit
-
-One command, pointed at a directory:
+From the root of your project:
 
 ```bash
-python3 scripts/audit.py .
+python3 ~/.claude/skills/statescope/scripts/render.py . --mermaid
 ```
 
-There is no config file and nothing to tell it about your stack. The state set is read from whatever you have already written:
+It reads every `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `.php`, `.prisma` and `.sql` file, skips `node_modules`, `vendor`, `dist`, `build` and other generated or dotted directories, and prints one diagram per state machine it finds. If there are several, `--machine=NAME` draws just one.
+
+### Step 3: Paste the Mermaid where people will see it
+
+For the example, the output is this, with the state labels and colour classes trimmed:
+
+```
+stateDiagram-v2
+    direction LR
+    [*] --> pending
+    state "any state" as any_state
+    any_state --> cancelled : unguarded · admin.ts L11
+    any_state --> delivered : unguarded · webhooks.ts L22
+    any_state --> paid : unguarded · webhooks.ts L14
+    any_state --> pending : unguarded · admin.ts L19
+    any_state --> refunded : unguarded · webhooks.ts L8
+    cancelled --> pending : escapes cancelled · orders.ts L40
+    paid --> shipped : orders.ts L19
+    pending --> paid : orders.ts L9
+    refunded --> pending : escapes refunded · orders.ts L40
+    shipped --> delivered : orders.ts L29
+    shipped --> paid : backwards · orders.ts L51
+    delivered --> [*]
+    cancelled --> [*]
+    refunded --> [*]
+```
+
+Put it in a fenced code block marked `mermaid` and [GitHub draws it](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams) in a README, an issue, a pull request, a discussion or a wiki page. Because it is generated from the code, it can't drift the way a hand-drawn diagram does when someone forgets to move a box.
+
+Two details keep the diagram honest:
+
+- **Every edge carries the file and line that allows it**, so any arrow you doubt takes one click to check.
+- **`any state` is not a state.** It is what an unguarded write means: if nothing reads the status before writing it, every state can reach the target, terminal ones included. One node shows all five of those writes without drawing an arrow from every state.
+
+For a person rather than a repository, `render.py . --out=state-review.html` writes a single HTML file with the diagram, every finding and the fix for each, in light and dark themes.
+
+## How statescope finds the transitions
+
+This is the part worth understanding, because it is what makes the diagram checkable rather than a guess.
+
+A **guarded transition** is a read of the state field that dominates a write of it:
+
+```ts
+const order = await prisma.order.findUnique({ where: { id: orderId } });
+if (order.status === "paid") {                 // read,  line 16
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "shipped" },               // write, line 19
+  });
+}
+```
+
+That is the edge `paid → shipped`, and the finding carries both line numbers. A guard on the far side of a function boundary doesn't count, and nothing inside a comment is ever evidence.
+
+A write with **no** such read is reported as `* → shipped`. It is less an edge than an admission: if nothing reads the state first, every state reaches that one.
+
+If your codebase already keeps a transition table, one `ALLOWED` map in one place, statescope reads that instead and marks the edges `declared`. That is the state a project should be in, and the audit says so by going quiet.
+
+The state set comes from whatever you already declared:
 
 | Source | Looks like |
 |---|---|
@@ -105,31 +176,18 @@ There is no config file and nothing to tell it about your stack. The state set i
 | SQL `CHECK` | `CHECK (status IN ('pending','paid'))` |
 | MySQL / Postgres enum | `ENUM('a','b')`, `CREATE TYPE … AS ENUM` |
 
-An enum that is not a lifecycle — `Currency`, `Role`, `Locale` — is skipped. A set qualifies on its field name or on its members, never on merely being an enum.
+An enum that is not a lifecycle, such as `Currency`, `Role` or `Locale`, is skipped. A set qualifies on its field name or its members, never just for being an enum.
 
-## How it decides what the transitions are
+It also reads Prisma ORM 8, where the schema file is `contract.prisma` and a filtered write is `.where(...).updateAndCount(...)`. A state inside `.where({ id, status: "paid" })` counts as the guard, so `.where({ id, status: "paid" }).updateAndCount({ status: "shipped" })` is the edge `paid → shipped`.
 
-This is the part worth understanding, because it is what makes the output checkable rather than a guess.
+## Reading the audit
 
-A **guarded transition** is a read of the state field that dominates a write of it:
+Run on the example that ships with the repository:
 
-```ts
-const order = await prisma.order.findUnique({ where: { id: orderId } });
-if (order.status === "paid") {                          // read, line 16
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: "shipped" },                        // write, line 19
-  });
-}
+```bash
+cd ~/.claude/skills/statescope
+python3 scripts/audit.py examples/order-lifecycle/before
 ```
-
-That is the edge `paid → shipped`, and the finding carries both line numbers. A guard on the far side of a function boundary does not count, and anything inside a comment is never evidence.
-
-A write with **no** such read is reported as `* → shipped`, which is less an edge than an admission: if nothing reads the state first, then every state reaches that one, including the terminal ones.
-
-And if your codebase keeps a transition table — one `ALLOWED` map, in one place — statescope reads *that* instead and marks the edges `declared`. That is the state a project should be in, and the audit says so by going quiet.
-
-## Reading the report
 
 ```
   STATE AUDIT   examples/order-lifecycle/before
@@ -152,58 +210,77 @@ Then the findings, worst first, each one citing the line that allows it:
     refunded -> pending is reachable. refunded is a terminal state.
     terminal_state_escape — refunded is where a thing stops. Code downstream
     of it assumes it is settled: refunds are reconciled, invoices are closed,
-    the warehouse has stopped caring.
+    the warehouse has stopped caring. Moving it back to pending re-opens all
+    of that with no record that it happened, and every report that already
+    counted it is now wrong in a way nothing will flag.
       src/orders.ts:40 (guard at :37)  data: { status: "pending" },
 ```
 
-Other shapes when you want something other than a terminal:
+Other shapes, when a terminal isn't where the result is going:
 
 ```bash
-python3 scripts/audit.py . --markdown   # paste into a PR comment
+python3 scripts/audit.py . --markdown   # a table for a pull request comment
 python3 scripts/audit.py . --json       # for your own tooling
 python3 scripts/audit.py . --strict     # exit 1 on any critical, for CI
-python3 scripts/extract.py .            # just the inferred machine
+python3 scripts/extract.py .            # just the inferred machine, as JSON
 ```
 
-## The five findings worth fixing first
+## The five invalid state transitions to fix first
 
 ### 1. A terminal state that can be escaped
 
-`refunded`, `cancelled`, `completed`, `delivered` — these are promises to the rest of the system. Accounting has reconciled the refund. The warehouse has closed the pick. The customer got the email.
+`refunded`, `cancelled`, `completed`, `delivered`: these are promises to the rest of the system. Accounting has reconciled the refund. The warehouse has closed the pick. The customer got the email.
 
-Moving the row back out re-opens all of it with no record that it happened, and every report that already counted it is now wrong in a way nothing will flag. The row looks completely ordinary afterwards, which is what makes it expensive.
+In the example, a retry button for support breaks two of those promises at once:
 
-If the reversal is deliberate, it is a *different state* — `reopened`, not `pending` — so that reports can tell a fresh order from a resurrected one.
+```ts
+// Support asked for a "retry" button. Nobody asked what it should refuse.
+export async function retryOrder(orderId: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (order.status === "refunded" || order.status === "cancelled") {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: "pending" },
+    });
+  }
+}
+```
+
+Moving the row back out re-opens everything downstream with no record that it happened, and every report that already counted it is now wrong in a way nothing will flag. The row looks completely ordinary afterwards, which is what makes it expensive. If the reversal is deliberate, it is a different state, `reopened` rather than `pending`, so reports can tell a fresh order from a resurrected one.
 
 ### 2. A write that no read protects
 
-The single most common defect. One line in an admin endpoint or a webhook handler:
+The most common defect in generated state code. The example has five, and the one in the payment webhook is typical:
 
 ```ts
-await prisma.order.update({
-  where: { id: orderId },
-  data: { status: "pending" },
-});
+// Stripe calls this. It trusts the event and writes whatever it implies.
+if (event.type === "charge.succeeded") {
+  await prisma.order.update({
+    where: { id: event.orderId },
+    data: { status: "paid" },
+  });
+}
 ```
 
-No comparison protects it, so every state reaches `pending`, including `refunded`. The real machine is fully connected; the diagram in your head is fiction.
+Nothing compares the current status first, so every state reaches `paid`, including `refunded`, `cancelled` and `delivered`. With webhooks delivered out of order, that is not hypothetical. The real machine is fully connected, and the diagram in your head is fiction.
 
-### 3. An unconstrained write
+### 3. A write that accepts any value
 
 Worse, because the set of reachable states stops being the enum at all:
 
 ```ts
+// The admin tool. One form field, one write, no questions asked.
 export async function setOrderStatus(orderId: string, status: string) {
   await prisma.order.update({ where: { id: orderId }, data: { status } });
 }
 ```
 
-The enum constrains the column. The caller decides what goes in it. This is the write that puts a state into production that your own diagram does not contain.
+The enum constrains the column, and the caller decides what goes in it. This is the write that puts a state into production that your own diagram does not contain. statescope drops the finding as soon as a validation dominates the write, whether that is `ALLOWED[from].includes(to)`, `z.enum(...)`, `Object.values(OrderStatus).includes(...)` or a `canTransition()` call.
 
 ### 4. A read-then-write race
 
 ```ts
-const order = await getOrder(id);        // reads "paid"
+const order = await prisma.order.findUnique({ where: { id } }); // reads "paid"
 if (order.status === "paid") {
   await prisma.order.update({ where: { id }, data: { status: "shipped" } });
 }
@@ -211,7 +288,7 @@ if (order.status === "paid") {
 
 Two round trips. Between them the row can move, so two callers that both read `paid` will both write, and the second one wins silently. Webhook retries and double-clicked buttons do exactly this, which is why the bug report arrives on your busiest day.
 
-The fix is to put the state in the `WHERE` clause so the database refuses the second write:
+The fix is to put the expected state in the `WHERE` clause so the database refuses the second write:
 
 ```ts
 const { count } = await prisma.order.updateMany({
@@ -221,118 +298,207 @@ const { count } = await prisma.order.updateMany({
 if (count === 0) throw new ConcurrentTransition(id);
 ```
 
+This works because of how the database settles the collision. Under PostgreSQL's default Read Committed isolation, an `UPDATE` that finds its row already changed by a concurrent transaction waits for that transaction to commit, then [re-checks its `WHERE` clause against the new version of the row](https://www.postgresql.org/docs/current/transaction-iso.html#XACT-READ-COMMITTED). The loser no longer matches `status = 'paid'`, updates zero rows, and is told so. A row lock (`SELECT … FOR UPDATE`) or a version column also works.
+
 ### 5. A transition that runs backwards
 
-`shipped → paid` after the label printed. Side effects do not reverse when the column does: the email went out, the webhook fired, the stock moved. Reversing the state tells the system none of that happened.
+`shipped → paid` after the label has printed. Side effects don't reverse when the column does: the email went out, the webhook fired, the stock moved. Reversing the state tells the system none of that happened.
 
-statescope only calls this backwards for lifecycle words it actually ranks, so unfamiliar vocabulary produces silence rather than a guess.
+statescope only calls an edge backwards when it ranks both lifecycle words, so unfamiliar vocabulary produces silence rather than a guess.
 
-The other eight rules — dead states, unreachable states, states nothing ever reads, a machine with no end, writes that bypass your own transition helper, and a lifecycle with no history — are documented with their rationale and failure cases in [`references/audit-rules.md`](https://github.com/NHTanvir/statescope/blob/master/references/audit-rules.md).
+The other eight rules cover dead states, unreachable states, states nothing ever reads, a lifecycle with no end, writes that go around your own transition helper, a missing transition history, duplicate guards and bare string literals. Each is documented with its reasoning and its failure cases in [`references/audit-rules.md`](https://github.com/NHTanvir/statescope/blob/master/references/audit-rules.md).
 
-## The fix it hands you
+## How to prevent invalid state transitions
 
-Every finding ships with a transition table generated from the states it found, in the language the machine was declared in — TypeScript, Python, PHP, or SQL with a trigger:
+To prevent invalid state transitions, put the whole machine in one table, and make every write go through one function that checks the table and carries the expected state in its `WHERE` clause. That is the entire fix. Everything else is detail.
+
+### A Prisma state machine in one table
+
+This is the `after` version of the example, lightly trimmed. The table is the only thing that defines the machine:
 
 ```ts
 const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
-  PENDING:   ["PAID", "CANCELLED"],
-  PAID:      ["SHIPPED", "REFUNDED"],
-  SHIPPED:   ["DELIVERED"],
+  PENDING: [OrderStatus.PAID, OrderStatus.CANCELLED],
+  PAID: [OrderStatus.SHIPPED, OrderStatus.REFUNDED],
+  SHIPPED: [OrderStatus.DELIVERED],
   DELIVERED: [],
   CANCELLED: [],
-  REFUNDED:  [],
+  REFUNDED: [],
 };
 
-export async function transition(id: string, from: OrderStatus, to: OrderStatus) {
-  if (!ALLOWED[from].includes(to)) throw new IllegalTransition(from, to);
-  const { count } = await prisma.order.updateMany({
-    where: { id, status: from },
-    data: { status: to, statusChangedAt: new Date() },
+export async function transition(
+  orderId: string,
+  from: OrderStatus,
+  to: OrderStatus,
+  actorId: string | null,
+  reason?: string,
+): Promise<void> {
+  if (!ALLOWED[from].includes(to)) {
+    throw new IllegalTransition(`${from} -> ${to} is not a legal move`);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const { count } = await tx.order.updateMany({
+      where: { id: orderId, status: from },
+      data: { status: to, statusChangedAt: new Date() },
+    });
+    if (count === 0) {
+      throw new ConcurrentTransition(`${orderId} was not in ${from} when the move was attempted`);
+    }
+    await tx.orderStatusHistory.create({ data: { orderId, from, to, actorId, reason } });
   });
-  if (count === 0) throw new ConcurrentTransition(id);
 }
 ```
 
-Two things are doing the work there. The table makes an illegal move a thrown error instead of a silent write. The `where` makes a race a lost update instead of a corrupted one.
+Three things are doing the work. The table turns an illegal move into a thrown error instead of a silent write. The `where` turns a race into a refused update instead of a corrupted row. The history insert, in the same transaction, records who made the move and why. Each caller becomes one line: `transition(orderId, OrderStatus.PAID, OrderStatus.SHIPPED, actorId)`.
 
-## Getting a diagram you can share
+On Prisma ORM 8 the guarded write is `db.orm.public.Order.where({ id: orderId, status: from }).updateAndCount({ status: to })`, which returns the number of rows changed rather than `{ count }`. [Prisma's client reference](https://www.prisma.io/docs/orm/reference/orm-client) lists `updateAndCount()` as the new name for `updateMany`.
 
-```bash
-python3 scripts/render.py . --mermaid
+Every finding statescope prints also comes with a starting table generated from the states it found, in the language the machine was declared in: TypeScript, Python, PHP, or SQL with a trigger. Treat it as a draft. Which moves are legal is a product decision, and the tool won't apply it for you.
+
+### The same guard in plain SQL
+
+An `if` in one language protects one codebase. Jobs, migrations, admin consoles and the psql session someone opens at midnight all bypass it. The `WHERE` clause protects all of them:
+
+```sql
+UPDATE "order" SET status = 'shipped', status_changed_at = now()
+ WHERE id = $1 AND status = 'paid';
+-- 0 rows updated means someone else moved it first. That is information.
 ```
 
-That emits a `stateDiagram-v2`, which GitHub renders natively in any README, issue or PR description — no image to regenerate and no diagram that drifts from the code because someone moved a box by hand:
+### Store the move, not just the position
 
+The status column tells you where a row is. It can't tell you how it got there, and that is the question every support ticket asks. An append-only history table answers it for the cost of one insert per move. This is the one statescope suggests:
+
+```sql
+CREATE TABLE status_history (
+  id bigserial PRIMARY KEY,
+  order_id text NOT NULL REFERENCES "order" (id),
+  from_status text,
+  to_status   text NOT NULL,
+  actor_id text,
+  reason   text,
+  at timestamptz NOT NULL DEFAULT now()
+);
 ```
-stateDiagram-v2
-    direction LR
-    [*] --> pending
-    state "any state" as any_state
-    any_state --> refunded : unguarded · webhooks.ts L8
-    pending --> paid : orders.ts L9
-    paid --> shipped : orders.ts L19
-    refunded --> pending : escapes refunded · orders.ts L40
-    shipped --> paid : backwards · orders.ts L51
-```
-
-Note the `any state` node. It is not a state — it is what an unguarded write means, drawn honestly instead of hidden.
-
-For something to send to a person rather than a repository:
-
-```bash
-python3 scripts/render.py . --out=state-review.html
-```
-
-One self-contained file — diagram, every finding, the fix for each, light and dark — that opens in a browser with nothing else installed.
-
-## Failing CI on an illegal path
-
-An audit you have to remember to run is one that stops happening in week three:
-
-```bash
-python3 scripts/audit.py . --strict
-```
-
-That exits 1 on any critical finding. Drop it in a pipeline step and the next handler that writes a status with no guard stops being something a reviewer has to catch by eye.
 
 ## From 12 findings to zero
 
-The repository ships the whole thing as a worked example. [`examples/order-lifecycle/before`](https://github.com/NHTanvir/statescope/tree/master/examples/order-lifecycle) is four files and ten writes — exactly what an afternoon of ordinary agent output looks like. It audits to **12 findings, 7 of them critical**: a terminal state escaped two ways, a transition that runs backwards, five writes with no guard, an admin endpoint that accepts any string, a dead state, and no history.
+The repository ships the whole thing as a worked example. [`examples/order-lifecycle/before`](https://github.com/NHTanvir/statescope/tree/master/examples/order-lifecycle) is four files and ten status writes, which is what an afternoon of ordinary agent output looks like. It audits to **12 findings, 7 of them critical**: a terminal state escaped two ways, a transition that runs backwards, five writes with no guard, an admin endpoint that accepts any string, read-then-write races, a dead state and no history.
 
-`after` is the same model behind one transition table, and it audits to **0 findings** with 5 declared transitions.
+`after` is the same model behind one transition table. It audits to **0 findings** with 5 declared transitions, and the whole verdict is one line:
 
-The two directories are worth reading side by side. The states do not change. What changes is that the second one says, in one place, what is allowed.
+```
+  No findings. Every path in this machine is one you declared.
+```
+
+The states barely change between the two directories. `DISPUTED`, which nothing ever wrote, is gone. What changes is that the second one says, in one place, what is allowed.
+
+## Failing CI on an invalid transition
+
+An audit you have to remember to run stops happening in week three. `--strict` exits with status 1 on any critical finding, so one workflow step catches the next unguarded status write before it merges:
+
+```yaml
+# .github/workflows/statescope.yml
+name: statescope
+on: [pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git clone --depth 1 https://github.com/NHTanvir/statescope /tmp/statescope
+      - run: python3 /tmp/statescope/scripts/audit.py . --strict
+```
+
+On the example, `before` exits 1 and `after` exits 0.
+
+## How does statescope compare with XState, Mermaid and AI diagram tools?
+
+Most state machine tools draw or run a machine that someone has already written down. statescope recovers the one your code implements, whether or not anyone did.
+
+| Tool | You give it | Infers the machine from existing code | Cites the line behind each invalid path | Same result every run |
+|---|---|---|---|---|
+| statescope | your repository | Yes | Yes | Yes |
+| XState and Stately's visualizer | a machine you write as XState config | No | No | Yes |
+| state-machine-cat | a chart you write in its DSL | No | No | Yes |
+| Mermaid or PlantUML by hand | a diagram you type | No | No | Yes |
+| AI diagram generators | a prompt or a pasted snippet | Only from the snippet | No | No |
+| An LLM reviewing the code | your code, in a prompt | Partly | Unverified | No |
+
+XState is the better choice when you are designing a new machine. statescope is for the one you already shipped. They work well together: recover the machine with statescope, decide which edges should exist, then move it into XState or a transition table.
+
+## What a static state machine audit cannot see
+
+statescope reads source text, so it has the limits every static tool has, and it says so rather than hiding them:
+
+- **A guard it doesn't recognise shows up as `* → state`**, which overstates the problem. Every edge carries its line, so one click settles it.
+- **Dynamic dispatch, reflection and states assembled from string fragments** are invisible to it.
+- **Backwards transitions are only reported for lifecycle words it ranks**, so `backwards_transition` stays quiet on vocabulary it doesn't know.
+- **Only the file types listed above are read.** Ruby, Go, Java and C# code is not scanned.
+- **A finding is a judgement, not a fact.** `backwards_transition` on a deliberate re-open flow is correct behaviour with a misleading name.
 
 ## Questions people ask
 
-### Does it need to run my application?
+### How do I generate a state machine diagram from code?
 
-No. It reads source files. There is no connection string, no instrumentation and no traffic — which also means it is safe to run against code you have not reviewed, and nothing is sent anywhere.
+Recover the machine first, then draw it. The states come from your enum, union or `CHECK` constraint, and the transitions from every read of the status field that guards a write to it. statescope does both: run `python3 ~/.claude/skills/statescope/scripts/render.py . --mermaid` in your project and paste the output into any Markdown file that GitHub renders.
 
-### What if my guard is written in a way it does not recognise?
+### What is an invalid state transition?
 
-It shows up as `* → state`, which overstates the problem. Every edge carries its file and line, so one click settles it. This is also why the tool reports what it found rather than issuing a verdict: a finding you can check is a finding you can correct.
+A move between two states that the business never meant to allow, such as `refunded → pending` or `shipped → paid`. Most codebases don't forbid them anywhere. An enum limits which values a status column can hold, not the order they arrive in, so any write that skips the check creates one.
 
-### Does it work on something other than an order flow?
+### How do you prevent invalid state transitions?
 
-Any status field. Subscriptions, tickets, invoices, jobs, documents, KYC applications, moderation queues — anything with an enum and a lifecycle. It will also report several machines in one codebase, and `--machine=NAME` draws the one you care about.
+Keep the allowed moves in one table, send every status write through one function that checks it, and put the expected current state in the update's `WHERE` clause so the database refuses a write that lost a race. An append-only history table then records who made each move and why.
 
-### Will it rewrite my code?
+### How do you implement a state machine in a database?
 
-No, deliberately. Which transitions are legal is a product decision: a table that forbids `delivered → shipped` is right for most shops and wrong for the one that reships lost parcels. It emits the table and you decide.
+Store the current state in one column limited to known values, keep the allowed moves in a transition table (in code, or enforced by a trigger), update with `WHERE id = $1 AND status = $2`, and log every move to an append-only history table. The column says where a row is, and the history says how it got there.
 
-### How is this different from XState or state-machine-cat?
+### Is there a state machine library for Prisma?
 
-Those are excellent at drawing a machine you have already written down — in a DSL, or as an XState config. This one is for the far more common case where nobody wrote it down, and the machine has to be recovered from the code before it can be argued with.
+You rarely need one. A `Record<Status, Status[]>` table and one `transition()` function that calls `updateMany({ where: { id, status: from } })` and checks the returned count is a complete Prisma state machine. On Prisma ORM 8 the call is `.where(...).updateAndCount(...)`. statescope prints a starting table built from your enum.
+
+### What is the difference between a state diagram and a state machine?
+
+A state machine is the behaviour: the states and the moves allowed between them. A state diagram is a picture of one. In most codebases the two disagree, because the diagram was drawn from intent while the machine is whatever the code allows. Generating the diagram from the code closes that gap.
+
+### Should a status field be an enum or a state machine?
+
+Both. The enum, union or `CHECK` constraint fixes which states exist, and a transition table fixes which moves between them are legal. An enum alone isn't a state machine, because it lets every state follow every other one.
+
+### Does GitHub render Mermaid state diagrams?
+
+Yes. Put the `stateDiagram-v2` source in a fenced code block marked `mermaid`, and GitHub draws it in Markdown files, issues, pull requests, discussions and wikis. Add `direction LR` for a left-to-right layout, which suits a pipeline like an order lifecycle.
+
+### Which languages does statescope support?
+
+It reads TypeScript, JavaScript, Python and PHP, plus Prisma schemas (including Prisma ORM 8's `contract.prisma`) and SQL. States come from Prisma enums, TypeScript unions and enums, `as const` arrays, Python `Enum`, PHP 8.1 enums, SQL `CHECK` constraints and MySQL or PostgreSQL enums. Ruby, Go and Java files are not scanned.
+
+### Does statescope run my application or send my code anywhere?
+
+No. It reads source files with plain Python and the standard library. There's no connection string, no instrumentation and no traffic, and the scripts make no network calls. The optional HTML report loads the Mermaid library from a CDN when you open it, but nothing from your code is sent.
+
+### How is statescope different from XState?
+
+XState runs a machine you write down as an XState config, and Stately's tools draw it. statescope is for the more common case where nobody wrote the machine down. It recovers the one your code already implements, so you can see it and argue with it, and then move it into XState or a transition table.
+
+### Will statescope rewrite my code?
+
+No, deliberately. Which transitions are legal is a product decision: a table that forbids `delivered → shipped` is right for most shops and wrong for one that reships lost parcels. It prints the table and you decide.
 
 ## Related
 
 If you are auditing the schema that declares the enum in the first place, [schemascope](/audit-ai-generated-database-schema/) is the same idea one layer down: ranked findings on a database schema, each with the DDL that fixes it.
 
-And if the question is who is allowed to trigger those transitions in the first place, [gatescope](/find-broken-access-control-ai-generated-code/) maps every API route to the guards that actually protect it, and names the routes that nothing is guarding.
+If the question is who is allowed to trigger those transitions, [gatescope](/find-broken-access-control-ai-generated-code/) maps every API route to the guards that actually protect it, and names the routes that nothing is guarding.
+
+I have also written up three tools for MCP servers: [Statelint](/migrate-mcp-server-stateless-2026-07-28/) for the stateless 2026-07-28 revision, [Hookbench](/test-mcp-events-sep-3415/) for MCP Events, and [Pollen](/poppy-json-personal-agent-protocol/) for poppy.json.
 
 ## Get it
 
-[github.com/NHTanvir/statescope](https://github.com/NHTanvir/statescope) — MIT licensed, no dependencies, 76 tests.
+[github.com/NHTanvir/statescope](https://github.com/NHTanvir/statescope): MIT licensed, no dependencies, 76 tests.
 
-If you find an illegal path it should have flagged and did not, that is the most useful possible contribution: open an issue with the smallest snippet that reproduces it, and it becomes a rule.
+If you find an invalid transition it should have flagged and didn't, that is the most useful contribution there is. Open an issue with the smallest snippet that reproduces it, and it becomes a rule.
