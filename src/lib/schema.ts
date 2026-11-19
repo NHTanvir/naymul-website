@@ -1,5 +1,5 @@
 import { site, socials } from '@/data/site';
-import { excerptOf, faqOf, toPlainText, wordsIn, type Post } from '@/lib/posts';
+import { excerptOf, faqOf, modifiedOf, toPlainText, wordsIn, type Post } from '@/lib/posts';
 
 const abs = (path: string, base: string) => new URL(path, base).href;
 
@@ -103,7 +103,7 @@ export function blogPostingSchema(post: Post, permalink: string, base: string, i
     articleBody: toPlainText(post.body ?? '').slice(0, 5000),
     wordCount: wordsIn(post),
     datePublished: publishedDate.toISOString(),
-    dateModified: publishedDate.toISOString(),
+    dateModified: modifiedOf(post).toISOString(),
     inLanguage: 'en-US',
     articleSection: category,
     keywords: tags.join(', '),
