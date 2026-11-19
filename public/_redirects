@@ -1,0 +1,4 @@
+# Permanent moves. Cloudflare reads this file at deploy time; it is not served.
+# Each old URL is listed with and without its trailing slash.
+/audit-state-machine-ai-generated-code/ /state-machine-diagram-from-code/ 301
+/audit-state-machine-ai-generated-code /state-machine-diagram-from-code/ 301

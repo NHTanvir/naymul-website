@@ -44,6 +44,11 @@ export default config({
           defaultValue: { kind: 'today' },
           validation: { isRequired: true },
         }),
+        updatedDate: fields.date({
+          label: 'Updated date',
+          description:
+            'Set when the post is substantially revised. Shown as "Updated" on the post and sent to search engines as dateModified.',
+        }),
         category: fields.text({ label: 'Category', defaultValue: 'Uncategorized' }),
         tags: fields.array(fields.text({ label: 'Tag' }), {
           label: 'Tags',

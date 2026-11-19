@@ -3,7 +3,7 @@ import { Image } from 'astro:assets';
 import { render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import avatar from '@/assets/me-hero.jpg';
-import { excerptOf, formatDate, getPosts, readingMinutes, slugify, type Post } from '@/lib/posts';
+import { excerptOf, formatDate, getPosts, modifiedOf, readingMinutes, slugify, type Post } from '@/lib/posts';
 import { site } from '@/data/site';
 import { blogPostingSchema, breadcrumbSchema, faqSchema, personSchema, softwareSchema } from '@/lib/schema';
 import '@/styles/home/base.css';
@@ -28,6 +28,9 @@ const { post, prev, next } = Astro.props;
 const { title, excerpt, publishedDate, category, tags, cover, coverAlt } = post.data;
 const { Content } = await render(post);
 const minutes = readingMinutes(post);
+// A revised post shows both dates; dateModified and article:modified_time follow the later one.
+const modified = modifiedOf(post);
+const isUpdated = modified > publishedDate;
 const permalink = new URL(`/${post.id}/`, Astro.site).href;
 const shareUrl = encodeURIComponent(permalink);
 const shareTitle = encodeURIComponent(title);
@@ -57,7 +60,7 @@ const jsonLd = [
   imageAlt={coverAlt || title}
   type="article"
   publishedTime={publishedDate.toISOString()}
-  modifiedTime={publishedDate.toISOString()}
+  modifiedTime={modified.toISOString()}
   tags={tags}
   jsonLd={jsonLd}
   section="blog"
@@ -87,6 +90,14 @@ const jsonLd = [
                 <span class="nt-author-mini__name">{site.name}</span>
                 <span class="nt-author-mini__sub">
                   <time datetime={publishedDate.toISOString()}>{formatDate(publishedDate)}</time>
+                  {
+                    isUpdated && (
+                      <>
+                        <span class="nt-dot-sep">&bull;</span>
+                        Updated <time datetime={modified.toISOString()}>{formatDate(modified)}</time>
+                      </>
+                    )
+                  }
                   <span class="nt-dot-sep">&bull;</span>
                   {minutes} min read
                 </span>

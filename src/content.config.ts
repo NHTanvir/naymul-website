@@ -12,6 +12,12 @@ const posts = defineCollection({
       title: z.string(),
       excerpt: z.string().optional().default(''),
       publishedDate: z.coerce.date(),
+      // Set when a post is substantially revised: it becomes dateModified, the visible
+      // "Updated" date and the sitemap's lastmod. Keystatic writes an empty date as null.
+      updatedDate: z.preprocess(
+        (value) => (value === '' || value === null ? undefined : value),
+        z.coerce.date().optional(),
+      ),
       category: z.string().optional().default('Uncategorized'),
       tags: z.array(z.string()).optional().default([]),
       cover: image().optional().nullable(),
